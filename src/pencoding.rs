@@ -1,6 +1,3 @@
-use crate::Result;
-use std::borrow::Cow;
-
 pub fn encode_param(s: impl AsRef<str>) -> String {
     // TODO: it would be nice not to clone the string when there are no encoding chars.
     let encoded: String = s

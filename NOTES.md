@@ -17,10 +17,10 @@
 7.  Accessing Protected Resources
 ~~8.  Nonce and Timestamp~~
 9.  Signing Requests
-    9.1.  Signature Base String
+    ~~9.1.  Signature Base String~~
     9.2.  HMAC-SHA1
-    9.3.  RSA-SHA1
-    9.4.  PLAINTEXT
+    ~~9.3.  RSA-SHA1~~
+    ~~9.4.  PLAINTEXT~~
 10.  HTTP Response Codes
 11.  Security Considerations
      11.1.  Credentials and Token Exchange

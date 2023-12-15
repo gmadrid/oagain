@@ -1,10 +1,36 @@
-use crate::pencoding::decode_str;
-use crate::Result;
+use crate::pencoding::{decode_str, encode_param};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct ParamPair {
-    name: String,
-    value: Option<String>,
+    pub name: String,
+    pub value: Option<String>,
+}
+
+impl ParamPair {
+    pub fn pair(name: impl Into<String>, value: Option<impl Into<String>>) -> ParamPair {
+        ParamPair {
+            name: name.into(),
+            value: value.map(Into::into),
+        }
+    }
+
+    pub fn to_wrapped_string(&self) -> String {
+        format!(
+            "{}=\"{}\"",
+            encode_param(&self.name),
+            self.value.as_ref().map(encode_param).unwrap_or_default()
+        )
+    }
+}
+
+impl ToString for ParamPair {
+    fn to_string(&self) -> String {
+        format!(
+            "{}={}",
+            encode_param(&self.name),
+            self.value.as_ref().map(encode_param).unwrap_or_default()
+        )
+    }
 }
 
 impl From<&str> for ParamPair {
@@ -73,5 +99,28 @@ mod test {
             ],
             decode_params_string("foo%20bar=quux&%C2%A1Andale%21")
         );
+    }
+
+    #[test]
+    fn params_to_string() {
+        // Regular
+        assert_eq!(
+            "dragon=tiamat",
+            ParamPair {
+                name: "dragon".to_string(),
+                value: Some("tiamat".to_string())
+            }
+            .to_string()
+        );
+
+        // null value
+        assert_eq!(
+            "salamander=",
+            ParamPair {
+                name: "salamander".to_string(),
+                value: None
+            }
+            .to_string()
+        )
     }
 }

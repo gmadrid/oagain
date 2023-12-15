@@ -1,13 +1,15 @@
 use std::convert::TryFrom;
 
-use crate::{OagainError, Result};
 use url::Url;
 
+use crate::{OagainError, Result};
+
 /// Request URLs as defined in Spec 4.1.
-struct Config {
-    request_token_url: Url,
-    user_authorization_url: Url,
-    access_token_url: Url,
+#[derive(Debug)]
+pub struct Config {
+    pub request_token_url: Url,
+    pub user_authorization_url: Url,
+    pub access_token_url: Url,
 }
 
 impl Config {

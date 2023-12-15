@@ -11,8 +11,8 @@ impl EpochProvider for SystemEpochProvider {
         let now = std::time::SystemTime::now();
         let epoch_duration = now.duration_since(UNIX_EPOCH).unwrap();
 
-        // Should fit. At least until 2033
-        epoch_duration.as_millis() as u32
+        // Should fit. At least until 2038
+        epoch_duration.as_secs() as u32
     }
 }
 

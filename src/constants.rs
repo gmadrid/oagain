@@ -1,0 +1,10 @@
+pub const OAUTH_CALLBACK_PARAM_NAME: &str = "oauth_callback";
+pub const OAUTH_CALLBACK_OOB_VALUE: &str = "oob";
+pub const OAUTH_CONSUMER_KEY_PARAM_NAME: &str = "oauth_consumer_key";
+pub const OAUTH_SIGNATURE_PARAM_NAME: &str = "oauth_signature";
+pub const OAUTH_SIGNATURE_METHOD_PARAM_NAME: &str = "oauth_signature_method";
+pub const OAUTH_SIGNATURE_METHOD_HMAC_VALUE: &str = "HMAC-SHA1";
+pub const OAUTH_TIMESTAMP_PARAM_NAME: &str = "oauth_timestamp";
+pub const OAUTH_NONCE_PARAM_NAME: &str = "oauth_nonce";
+pub const OAUTH_VERSION_PARAM_NAME: &str = "oauth_version";
+pub const OAUTH_VERSION_VALUE: &str = "1.0";

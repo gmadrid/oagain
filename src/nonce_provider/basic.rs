@@ -6,7 +6,7 @@ use std::collections::HashSet;
 // TODO: you could add a nonce_generator to make the nonce value random.
 
 #[derive(Debug)]
-struct BasicNonce<EP: EpochProvider> {
+pub struct BasicNonce<EP: EpochProvider> {
     epoch_provider: EP,
     last_timestamp: u32,
     nonces_for_last_timestamp: HashSet<String>,
@@ -67,7 +67,7 @@ mod test {
 
     #[test]
     fn basic() {
-        let mut epoch_provider = TestEpochProvider::new(44);
+        let epoch_provider = TestEpochProvider::new(44);
         let mut nonce_provider = BasicNonce::new(epoch_provider);
 
         assert_eq!(
