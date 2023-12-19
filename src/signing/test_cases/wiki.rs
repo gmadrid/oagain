@@ -2,6 +2,7 @@ use crate::parameters::ParamPair;
 use crate::pencoding::encode_param;
 use crate::signing::signature_base_string::normalize_request_parameters;
 use crate::signing::{make_signing_key, sign_string_hmac};
+use std::iter::once;
 
 /// https://wiki.oauth.net/w/page/12238556/TestCases includes many test_cases cases, many derived
 /// directly from the OAuth Spec.
@@ -27,23 +28,29 @@ fn parameter_encoding_sec_5_1() {
 fn normalize_request_parameters_sec_9_1_1() {
     assert_eq!(
         "name=",
-        normalize_request_parameters(&[ParamPair::single("name")])
+        normalize_request_parameters(once(ParamPair::single("name")))
     );
     assert_eq!(
         "a=b",
-        normalize_request_parameters(&[ParamPair::pair("a", "b")])
+        normalize_request_parameters(once(ParamPair::pair("a", "b")))
     );
     assert_eq!(
         "a=b&c=d",
-        normalize_request_parameters(&[ParamPair::pair("a", "b"), ParamPair::pair("c", "d")])
+        normalize_request_parameters(
+            [ParamPair::pair("a", "b"), ParamPair::pair("c", "d")].into_iter()
+        )
     );
     assert_eq!(
         "a=x%20y&a=x%21y",
-        normalize_request_parameters(&[ParamPair::pair("a", "x!y"), ParamPair::pair("a", "x y")])
+        normalize_request_parameters(
+            [ParamPair::pair("a", "x!y"), ParamPair::pair("a", "x y")].into_iter()
+        )
     );
     assert_eq!(
         "x=a&x%21y=a",
-        normalize_request_parameters(&[ParamPair::pair("x!y", "a"), ParamPair::pair("x", "a")])
+        normalize_request_parameters(
+            [ParamPair::pair("x!y", "a"), ParamPair::pair("x", "a")].into_iter()
+        )
     );
 }
 

@@ -8,19 +8,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ee9b45c3-12fa-4afe-8350-8cec2e968b0e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/signing/test_cases/mod.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/signing/test_cases/old_keys.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/signing/test_cases/wiki.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/NOTES.md" beforeDir="false" afterPath="$PROJECT_DIR$/NOTES.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/consumer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/consumer.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/nonce_provider/basic.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/nonce_provider/basic.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/nonce_provider/epoch_provider/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/nonce_provider/epoch_provider/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/parameters.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/parameters.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pencoding.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/pencoding.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/signing/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/signing/mod.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/signing/signature_base_string.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/signing/signature_base_string.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/signing/test_cases/old_keys.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/signing/test_cases/old_keys.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/signing/test_cases/wiki.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/signing/test_cases/wiki.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -125,7 +117,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1702489169127</updated>
-      <workItem from="1702489170134" duration="56990000" />
+      <workItem from="1702489170134" duration="63572000" />
     </task>
     <servers />
   </component>

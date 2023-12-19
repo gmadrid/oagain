@@ -1,4 +1,4 @@
-use itertools::{sorted, Itertools};
+use itertools::Itertools;
 use url::Url;
 
 use crate::constants::OAUTH_SIGNATURE_PARAM_NAME;
@@ -17,14 +17,19 @@ fn construct_request_url(url: &Url) -> String {
 }
 
 // pairs of (name: &str, value: &str)
-pub(crate) fn normalize_request_parameters(pairs: &[ParamPair]) -> String {
-    sorted(pairs)
+pub(crate) fn normalize_request_parameters(pairs: impl Iterator<Item = ParamPair>) -> String {
+    pairs
+        .sorted()
         .filter(|p| p.name != OAUTH_SIGNATURE_PARAM_NAME)
         .map(|pair| pair.to_string())
         .join("&")
 }
 
-pub fn concat_request_elements(method: &str, url: &Url, pairs: &[ParamPair]) -> String {
+pub fn concat_request_elements(
+    method: &str,
+    url: &Url,
+    pairs: impl Iterator<Item = ParamPair>,
+) -> String {
     format!(
         "{}&{}&{}",
         encode_param(method),
@@ -46,12 +51,12 @@ mod test {
             concat_request_elements(
                 "POST",
                 &Url::parse("http://example.com/the_path").unwrap(),
-                &[
+                [
                     "one=1 afterspace".into(),
                     "two=2".into(),
                     "three=3".into(),
                     "four=4".into()
-                ]
+                ].into_iter()
             )
         )
     }
@@ -60,15 +65,18 @@ mod test {
     fn basic_params() {
         assert_eq!(
             "a=1&c=hi%20there&f=25&f=50&f=a&z=p&z=t",
-            normalize_request_parameters(&[
-                "a=1".into(),
-                "c=hi there".into(),
-                "f=50".into(),
-                "f=25".into(),
-                "f=a".into(),
-                "z=p".into(),
-                "z=t".into()
-            ])
+            normalize_request_parameters(
+                [
+                    "a=1".into(),
+                    "c=hi there".into(),
+                    "f=50".into(),
+                    "f=25".into(),
+                    "f=a".into(),
+                    "z=p".into(),
+                    "z=t".into()
+                ]
+                .into_iter()
+            )
         );
     }
 
@@ -76,7 +84,7 @@ mod test {
     fn filter_oauth_signature() {
         assert_eq!(
             "f=a&oauth_signature_one=1&oauth_signature_three=25&oauth_signature_two=hi%20there&z=p&z=t",
-            normalize_request_parameters(&[
+            normalize_request_parameters([
                 "oauth_signature_one=1".into(),
                 "oauth_signature_two=hi there".into(),
                 "oauth_signature=50".into(),
@@ -84,7 +92,7 @@ mod test {
                 "f=a".into(),
                 "z=p".into(),
                 "z=t".into()
-            ])
+            ].into_iter())
         );
     }
 

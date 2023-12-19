@@ -55,7 +55,7 @@ fn test_request_token() {
         OAUTH_CALLBACK_OOB_VALUE,
     ));
 
-    let string_to_sign = concat_request_elements(method, &url, &all_pairs);
+    let string_to_sign = concat_request_elements(method, &url, all_pairs.iter().cloned());
 
     let signature_base_string: &str =
     "GET&https%3A%2F%2Fphotos.example.net%2Frequest_token&oauth_callback%3Doob%26oauth_consumer_key%3Df94997add0b18f6c81e43b9843149042%26oauth_nonce%3Dnonce-1702901903-0%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1702901903%26oauth_version%3D1.0";

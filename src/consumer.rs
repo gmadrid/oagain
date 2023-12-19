@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use reqwest::blocking::Client;
+use reqwest::blocking::Response;
 use std::iter::once;
 use url::Url;
 
@@ -14,6 +15,36 @@ use crate::nonce_provider::{BasicNonce, NonceProvider, SystemEpochProvider};
 use crate::parameters::ParamPair;
 use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
 use crate::Result;
+
+trait CannedRequest {
+    fn extra_params(&self) -> Vec<ParamPair>;
+    fn token<'a, NP: NonceProvider>(&self, consumer: &'a Consumer<NP>) -> Result<&'a str>;
+    fn method(&self) -> &'static str;
+    fn url<'a, NP: NonceProvider>(&self, consumer: &'a Consumer<NP>) -> &'a Url;
+}
+
+struct RequestTokenCannedRequest;
+
+impl CannedRequest for RequestTokenCannedRequest {
+    fn extra_params(&self) -> Vec<ParamPair> {
+        vec![ParamPair::pair(
+            OAUTH_CALLBACK_PARAM_NAME,
+            OAUTH_CALLBACK_OOB_VALUE,
+        )]
+    }
+
+    fn token<'a, NP: NonceProvider>(&self, _consumer: &'a Consumer<NP>) -> Result<&'a str> {
+        Ok("")
+    }
+
+    fn method(&self) -> &'static str {
+        "GET"
+    }
+
+    fn url<'a, NP: NonceProvider>(&self, consumer: &'a Consumer<NP>) -> &'a Url {
+        &consumer.config.request_token_url
+    }
+}
 
 /// A basic consumer that uses the standard time-based nonce provider.
 pub type BasicConsumer = Consumer<BasicNonce<SystemEpochProvider>>;
@@ -59,6 +90,48 @@ impl<NP: NonceProvider> Consumer<NP> {
         })
     }
 
+    pub fn retrieve_request_token(&mut self) -> Result<()> {
+        self.canned_request(&RequestTokenCannedRequest)?;
+        Ok(())
+    }
+
+    fn canned_request(&mut self, req: &impl CannedRequest) -> Result<Response> {
+        let auth_header = self.sign_request_from_components(req)?;
+        // TODO: reuse these clients.
+        let client = Client::builder().build()?;
+        // TODO: make this a fold()
+        let mut url = req.url(self).clone();
+        {
+            let mut pairs = url.query_pairs_mut();
+            for param in req.extra_params() {
+                pairs.append_pair(&param.name, &param.value.unwrap_or_default());
+            }
+        }
+        let request = client.get(url).header("Authorization", auth_header);
+        println!("\nRequest: {:?}", request);
+
+        let response = request.send()?;
+        println!("\nResponse: {:?}", response);
+
+        Ok(response)
+    }
+
+    fn sign_request_from_components(&mut self, req: &impl CannedRequest) -> Result<String> {
+        let (timestamp, nonce) = self.nonce()?;
+        let standard_params = self.oauth_standard_param_pairs(timestamp, &nonce);
+        let extra_params = req.extra_params();
+        let string_to_sign = {
+            let all_params = standard_params.iter().cloned().chain(extra_params);
+            concat_request_elements(req.method(), req.url(self), all_params)
+        };
+
+        let signing_key = make_signing_key(&self.consumer_secret, req.token(self)?);
+        let signature = sign_string_hmac(signing_key, string_to_sign);
+
+        let header = self.oauth_header(&standard_params, signature);
+        Ok(header)
+    }
+
     //----------------------------------------------------------------------
 
     pub fn obtain_request_token(&mut self) -> Result<()> {
@@ -67,8 +140,11 @@ impl<NP: NonceProvider> Consumer<NP> {
 
         // the token is "" because there is no token for this request.
         let signing_key = self.request_token_signing_key()?;
-        let string_to_sign =
-            concat_request_elements("POST", &self.config.request_token_url, &params);
+        let string_to_sign = concat_request_elements(
+            "POST",
+            &self.config.request_token_url,
+            params.clone().into_iter(),
+        );
         let signature = sign_string_hmac(signing_key, string_to_sign);
 
         // callback is not a standard param.
@@ -106,7 +182,7 @@ impl<NP: NonceProvider> Consumer<NP> {
     }
 
     pub fn oauth_standard_param_pairs(&mut self, timestamp: u32, nonce: &str) -> Vec<ParamPair> {
-        let mut params = vec![
+        let params = vec![
             ParamPair::pair(OAUTH_CONSUMER_KEY_PARAM_NAME, &self.consumer_key),
             ParamPair::pair(
                 OAUTH_SIGNATURE_METHOD_PARAM_NAME,
