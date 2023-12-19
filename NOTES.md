@@ -1,4 +1,4 @@
-Given the complexity of this protocol's signature protocol, the need to get everything exactly 
+Given the complexity of the OAuth 1.0 signature protocol, the need to get everything exactly 
 byte-perfect, and the opacity of the products, there is surprisingly little example data out
 there. Even the spec only gives an example using the `PLAINTEXT` "hash" algorithm. Which is 
 useful, but getting a sample hash for known data for the other two algorithms in the spec would have
@@ -14,6 +14,26 @@ Here is [another one](https://lti.tools/oauth/).
 but it might be worth reading anyway.
 
 This is an [article](https://www.testim.io/blog/how-to-test-oauth-authentication/) on how to secure your implementation.
+
+# Implementation ideas
+
+- There are "standard" OAuth params which get treated differently. 
+  - Most notable seems to be that they are the only params that get put into the `Authorization` header.
+- _All_ params are used for signing (along with the HTTP method and the "normalized" URL.)
+
+So, I think that to make an OAuth request, we need:
+1) HTTP method,
+2) URL (protocol/host/path)
+3) list of additional params
+4) the token to use
+
+We should export four request methods, retrieve_request_token, generate_user_auth_url, retrieve_access_token, and
+make_user_request. Each of these is a thin wrapper down to the general function.
+
+It would be a "nice to have" to take a Reqwest request, unpack the stuff OAuth needs, and then modify that request
+to be a valid OAuth request.
+
+
 
 # Spec "checklist"
 

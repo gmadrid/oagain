@@ -32,9 +32,12 @@ mod test {
         let millis = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
-            .as_millis() as u32;
+            .as_secs() as u32;
 
-        // There is no really good way to test this. We just ensure that the time returned by
+        dbg!(time);
+        dbg!(millis);
+
+        // There is no really good way to test_cases this. We just ensure that the time returned by
         // provider is within 10ms of the current time expressed as ms from the unix epoch.
         assert!(millis.abs_diff(time) < 10);
     }

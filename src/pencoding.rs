@@ -13,7 +13,7 @@ pub fn encode_param(s: impl AsRef<str>) -> String {
             {
                 vec![*ch]
             } else {
-                format!("%{ch:X}").as_bytes().to_owned()
+                format!("%{ch:02X}").as_bytes().to_owned()
             }
         })
         .map(|v| v as char)

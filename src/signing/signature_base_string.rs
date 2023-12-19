@@ -3,6 +3,7 @@ use url::Url;
 
 use crate::constants::OAUTH_SIGNATURE_PARAM_NAME;
 use crate::parameters::ParamPair;
+use crate::pencoding::encode_param;
 
 fn construct_request_url(url: &Url) -> String {
     if url.query().is_some() || url.fragment().is_some() {
@@ -16,7 +17,7 @@ fn construct_request_url(url: &Url) -> String {
 }
 
 // pairs of (name: &str, value: &str)
-fn normalize_request_parameters(pairs: &[ParamPair]) -> String {
+pub(crate) fn normalize_request_parameters(pairs: &[ParamPair]) -> String {
     sorted(pairs)
         .filter(|p| p.name != OAUTH_SIGNATURE_PARAM_NAME)
         .map(|pair| pair.to_string())
@@ -26,9 +27,9 @@ fn normalize_request_parameters(pairs: &[ParamPair]) -> String {
 pub fn concat_request_elements(method: &str, url: &Url, pairs: &[ParamPair]) -> String {
     format!(
         "{}&{}&{}",
-        method,
-        construct_request_url(url),
-        normalize_request_parameters(pairs)
+        encode_param(method),
+        encode_param(construct_request_url(url)),
+        encode_param(normalize_request_parameters(pairs))
     )
 }
 
@@ -41,7 +42,7 @@ mod test {
     #[test]
     fn concat_request() {
         assert_eq!(
-            "POST&http://example.com/the_path&four=4&one=1%20afterspace&three=3&two=2",
+            "POST&http%3A%2F%2Fexample.com%2Fthe_path&four%3D4%26one%3D1%2520afterspace%26three%3D3%26two%3D2",
             concat_request_elements(
                 "POST",
                 &Url::parse("http://example.com/the_path").unwrap(),

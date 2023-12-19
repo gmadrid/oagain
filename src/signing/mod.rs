@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test_cases;
+
 mod signature_base_string;
 mod signer;
 

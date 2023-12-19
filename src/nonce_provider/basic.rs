@@ -19,7 +19,7 @@ impl Default for BasicNonce<SystemEpochProvider> {
 }
 
 impl<EP: EpochProvider> BasicNonce<EP> {
-    fn new(epoch_provider: EP) -> BasicNonce<EP> {
+    pub fn new(epoch_provider: EP) -> BasicNonce<EP> {
         BasicNonce {
             epoch_provider,
             last_timestamp: Default::default(),

@@ -1,16 +1,23 @@
 use crate::pencoding::{decode_str, encode_param};
 
-#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord, Clone)]
 pub struct ParamPair {
     pub name: String,
     pub value: Option<String>,
 }
 
 impl ParamPair {
-    pub fn pair(name: impl Into<String>, value: Option<impl Into<String>>) -> ParamPair {
+    pub fn single(name: impl Into<String>) -> ParamPair {
         ParamPair {
             name: name.into(),
-            value: value.map(Into::into),
+            value: None,
+        }
+    }
+
+    pub fn pair(name: impl Into<String>, value: impl Into<String>) -> ParamPair {
+        ParamPair {
+            name: name.into(),
+            value: Some(value.into()),
         }
     }
 

@@ -1,5 +1,7 @@
 use itertools::Itertools;
 use reqwest::blocking::Client;
+use std::iter::once;
+use url::Url;
 
 use crate::config::Config;
 use crate::constants::{
@@ -13,6 +15,7 @@ use crate::parameters::ParamPair;
 use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
 use crate::Result;
 
+/// A basic consumer that uses the standard time-based nonce provider.
 pub type BasicConsumer = Consumer<BasicNonce<SystemEpochProvider>>;
 
 #[derive(Debug)]
@@ -28,24 +31,27 @@ pub struct Consumer<NP: NonceProvider> {
 }
 
 impl<NP: NonceProvider> Consumer<NP> {
+    /// Creates a new BasicConsumer with the provided `consumer_key`, `consumer_secret`, and `config`.
     pub fn new(
-        key: impl Into<String>,
-        secret: impl Into<String>,
+        consumer_key: impl Into<String>,
+        consumer_secret: impl Into<String>,
         config: Config,
     ) -> Result<BasicConsumer> {
-        Consumer::new_with_nonce(key, secret, config, BasicNonce::default())
+        Consumer::new_with_nonce(consumer_key, consumer_secret, config, BasicNonce::default())
     }
 
+    /// Creates a new Consumer with the provided `consumer_key`, `consumer_secret`, and `config`.
+    /// The new consumer will used the provided `nonce_provider` for generating nonces.
     pub fn new_with_nonce(
-        key: impl Into<String>,
-        secret: impl Into<String>,
+        consumer_key: impl Into<String>,
+        consumer_secret: impl Into<String>,
         config: Config,
-        nonce: NP,
+        nonce_provider: NP,
     ) -> Result<Self> {
         Ok(Consumer {
-            consumer_key: key.into(),
-            consumer_secret: secret.into(),
-            nonce_provider: nonce,
+            consumer_key: consumer_key.into(),
+            consumer_secret: consumer_secret.into(),
+            nonce_provider,
             config,
             request_token: None,
             access_token: None,
@@ -53,27 +59,24 @@ impl<NP: NonceProvider> Consumer<NP> {
         })
     }
 
+    //----------------------------------------------------------------------
+
     pub fn obtain_request_token(&mut self) -> Result<()> {
-        let (timestamp, nonce) = self.nonce_provider.nonce()?;
-        let mut params = vec![
-            ParamPair::pair(OAUTH_CONSUMER_KEY_PARAM_NAME, Some(&self.consumer_key)),
-            ParamPair::pair(
-                OAUTH_SIGNATURE_METHOD_PARAM_NAME,
-                Some(OAUTH_SIGNATURE_METHOD_HMAC_VALUE),
-            ),
-            ParamPair::pair(OAUTH_TIMESTAMP_PARAM_NAME, Some(timestamp.to_string())),
-            ParamPair::pair(OAUTH_NONCE_PARAM_NAME, Some(nonce)),
-            ParamPair::pair(OAUTH_VERSION_PARAM_NAME, Some(OAUTH_VERSION_VALUE)),
-            ParamPair::pair(OAUTH_CALLBACK_PARAM_NAME, Some(OAUTH_CALLBACK_OOB_VALUE)),
-        ];
+        let (timestamp, nonce) = self.nonce()?;
+        let mut params = self.oauth_standard_param_pairs(timestamp, &nonce);
 
         // the token is "" because there is no token for this request.
-        let signing_key = make_signing_key(&self.consumer_secret, "");
+        let signing_key = self.request_token_signing_key()?;
         let string_to_sign =
             concat_request_elements("POST", &self.config.request_token_url, &params);
         let signature = sign_string_hmac(signing_key, string_to_sign);
 
-        params.push(ParamPair::pair(OAUTH_SIGNATURE_PARAM_NAME, Some(signature)));
+        // callback is not a standard param.
+        params.push(ParamPair::pair(
+            OAUTH_CALLBACK_PARAM_NAME,
+            OAUTH_CALLBACK_OOB_VALUE,
+        ));
+        params.push(ParamPair::pair(OAUTH_SIGNATURE_PARAM_NAME, signature));
 
         // Make the payload string.
         let auth_header_params = params.iter().map(|pp| pp.to_wrapped_string()).join(",");
@@ -93,44 +96,51 @@ impl<NP: NonceProvider> Consumer<NP> {
 
         Ok(())
     }
-}
 
-#[cfg(test)]
-mod test {
-    use crate::config::Config;
-    use crate::consumer::BasicConsumer;
-    use crate::test_constants::{ACCESS_TOKEN_URL, REQUEST_TOKEN_URL, USER_AUTHORIZATION_URL};
-    use url::Url;
+    pub fn request_token_signing_key(&self) -> Result<String> {
+        Ok(make_signing_key(&self.consumer_secret, ""))
+    }
 
-    #[test]
-    fn foobasr() {
-        let mut consumer = BasicConsumer::new(
-            "dpf43f3p2l4k3l03",
-            "kd94hf93k423kf44",
-            Config {
-                request_token_url: Url::parse(REQUEST_TOKEN_URL).unwrap(),
-                user_authorization_url: Url::parse(USER_AUTHORIZATION_URL).unwrap(),
-                access_token_url: Url::parse(ACCESS_TOKEN_URL).unwrap(),
-            },
+    pub fn nonce(&mut self) -> Result<(u32, String)> {
+        self.nonce_provider.nonce()
+    }
+
+    pub fn oauth_standard_param_pairs(&mut self, timestamp: u32, nonce: &str) -> Vec<ParamPair> {
+        let mut params = vec![
+            ParamPair::pair(OAUTH_CONSUMER_KEY_PARAM_NAME, &self.consumer_key),
+            ParamPair::pair(
+                OAUTH_SIGNATURE_METHOD_PARAM_NAME,
+                OAUTH_SIGNATURE_METHOD_HMAC_VALUE,
+            ),
+            ParamPair::pair(OAUTH_TIMESTAMP_PARAM_NAME, timestamp.to_string()),
+            ParamPair::pair(OAUTH_NONCE_PARAM_NAME, nonce),
+            ParamPair::pair(OAUTH_VERSION_PARAM_NAME, OAUTH_VERSION_VALUE),
+        ];
+        params
+    }
+
+    pub fn oauth_header(&self, param_pairs: &[ParamPair], signature: impl AsRef<str>) -> String {
+        let signature_pair = ParamPair::pair(OAUTH_SIGNATURE_PARAM_NAME, signature.as_ref());
+        format!(
+            "OAuth {}",
+            param_pairs
+                .iter()
+                .sorted()
+                .chain(once(&signature_pair))
+                .map(|pp| pp.to_wrapped_string())
+                .join(", ")
         )
-        .unwrap();
-        consumer.obtain_request_token().unwrap();
-        assert!(false)
     }
 }
 
-/*
-    An example from eTrade:
+#[cfg(test)]
+pub(crate) trait ConsumerTestFuncs {
+    fn request_url(&self) -> &Url;
+}
 
-     https://api.etrade.com/oauth/request_token
-
-     Authorization: OAuth realm="",oauth_callback="oob",
-oauth_signature="FjoSQaFDKEDK1FJazlY3xArNflk%3D", oauth_nonce="LTg2ODUzOTQ5MTEzMTY3MzQwMzE%3D",
-oauth_signature_method="HMAC-SHA1",oauth_consumer_key="282683cc9e4b8fc81dea6bc687d46758",
-oauth_timestamp="1273254425"
-
-     Response:
-     oauth_token=%2FiQRgQCRGPo7Xdk6G8QDSEzX0Jsy6sKNcULcDavAGgU%3D&amp;oauth_token_secret=%2FrC9scEpzcwSEMy4vE7nodSzPLqfRINnTNY4voczyFM%3D&amp;oauth_callback_confirmed=true
-
-     NOTE: I'm not sure that the signature is real. It's the same for all of the eTrade examples.
-*/
+#[cfg(test)]
+impl<NP: NonceProvider> ConsumerTestFuncs for Consumer<NP> {
+    fn request_url(&self) -> &Url {
+        &self.config.request_token_url
+    }
+}

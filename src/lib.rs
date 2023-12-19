@@ -45,6 +45,7 @@ pub enum OagainError {
     UrlParseError(#[from] url::ParseError),
 }
 
+/// Result type for the OAgain library.
 pub type Result<T> = std::result::Result<T, OagainError>;
 
 pub use config::Config;
