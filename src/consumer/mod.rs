@@ -1,8 +1,13 @@
+use std::iter::once;
+
 use itertools::Itertools;
 use reqwest::blocking::Client;
 use reqwest::blocking::Response;
-use std::iter::once;
 use url::Url;
+
+use request_scheme::AccessTokenScheme;
+use request_scheme::RequestScheme;
+use request_scheme::RequestTokenScheme;
 
 use crate::config::Config;
 use crate::constants::{
@@ -12,13 +17,9 @@ use crate::constants::{
     OAUTH_VERIFIER_PARAM_NAME, OAUTH_VERSION_PARAM_NAME, OAUTH_VERSION_VALUE,
 };
 use crate::nonce_provider::{BasicNonce, NonceProvider, SystemEpochProvider};
-use crate::parameters::ParamPair;
-use crate::pencoding::decode_str;
+use crate::parameters::{decode_params_string, ParamPair};
 use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
 use crate::{OagainError, Result};
-use request_scheme::AccessTokenScheme;
-use request_scheme::RequestScheme;
-use request_scheme::RequestTokenScheme;
 
 pub(crate) mod request_scheme;
 
@@ -90,19 +91,18 @@ impl<NP: NonceProvider> Consumer<NP> {
         let response = self.canned_request(&RequestTokenScheme)?;
         let response_str: String = String::from_utf8(Vec::from(response.bytes()?))?;
 
-        for piece in response_str.split('&') {
-            if let Some(pos) = piece.find('=') {
-                let name = decode_str(&piece[..pos]);
-                let value = decode_str(&piece[pos + 1..]);
-                if name == "oauth_token" {
-                    self.request_token = Some(value);
-                } else if name == "oauth_token_secret" {
-                    self.token_secret = Some(value);
-                }
-            } else {
-                panic!("Hrm. Do better here.");
+        let params = decode_params_string(response_str);
+        for param in params {
+            let name = param.name;
+            if name == "oauth_token" {
+                // TODO: Do you want to check for None?
+                self.request_token = param.value;
+            } else if name == "oauth_token_secret" {
+                // TODO: Do you want to check for None?
+                self.token_secret = param.value;
             }
         }
+        // TODO: At this point, you should check to make sure that both params were present.
         Ok(())
     }
 
