@@ -90,6 +90,7 @@ impl<NP: NonceProvider> Consumer<NP> {
     pub fn retrieve_request_token(&mut self) -> Result<()> {
         let response = self.canned_request(&RequestTokenScheme)?;
         let response_str: String = String::from_utf8(Vec::from(response.bytes()?))?;
+        println!("response_str: {}", response_str);
 
         let params = decode_params_string(response_str);
         for param in params {
