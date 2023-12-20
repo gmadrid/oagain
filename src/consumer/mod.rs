@@ -25,12 +25,21 @@ pub(crate) mod request_scheme;
 
 trait BoolToOption<T> {
     fn option(self, val: T) -> Option<T>;
+    fn option_with(self, val_func: impl Fn() -> T) -> Option<T>;
 }
 
 impl<T> BoolToOption<T> for bool {
     fn option(self, val: T) -> Option<T> {
         if self {
             val.into()
+        } else {
+            None
+        }
+    }
+
+    fn option_with(self, val_func: impl Fn() -> T) -> Option<T> {
+        if self {
+            val_func().into()
         } else {
             None
         }
@@ -148,7 +157,8 @@ impl<NP: NonceProvider> Consumer<NP> {
 
     fn sign_request_from_components(&mut self, req: &impl RequestScheme) -> Result<String> {
         let (timestamp, nonce) = self.nonce()?;
-        let standard_params = self.oauth_standard_param_pairs(timestamp, &nonce, true);
+        //let standard_params = self.oauth_standard_param_pairs(timestamp, &nonce, true);
+        let standard_params = self.oauth_param_list(timestamp, nonce, true, false, false);
         let extra_params = req.extra_params();
         let string_to_sign = {
             let all_params = standard_params.iter().cloned().chain(extra_params);
@@ -162,7 +172,7 @@ impl<NP: NonceProvider> Consumer<NP> {
         Ok(header)
     }
 
-    fn oauth_param_list(
+    pub(crate) fn oauth_param_list(
         &self,
         timestamp: u32,
         nonce: impl AsRef<str>,
@@ -190,11 +200,11 @@ impl<NP: NonceProvider> Consumer<NP> {
             (OAUTH_TOKEN_PARAM_NAME, &|| {
                 // TODO: bad unwrap
                 // TODO: need to use access_token sometimes.
-                include_token.option(self.request_token.as_ref().unwrap().clone())
+                include_token.option_with(|| self.request_token.as_ref().unwrap().clone())
             }),
             (OAUTH_VERIFIER_PARAM_NAME, &|| {
                 // TODO: bad unwrap
-                include_verifier.option(self.verification_code.as_ref().unwrap().clone())
+                include_verifier.option_with(|| self.verification_code.as_ref().unwrap().clone())
             }),
         ];
 
@@ -212,31 +222,6 @@ impl<NP: NonceProvider> Consumer<NP> {
 
     pub fn nonce(&mut self) -> Result<(u32, String)> {
         self.nonce_provider.nonce()
-    }
-
-    pub fn oauth_standard_param_pairs(
-        &mut self,
-        timestamp: u32,
-        nonce: &str,
-        include_callback: bool,
-    ) -> Vec<ParamPair> {
-        let mut params = vec![
-            ParamPair::pair(OAUTH_CONSUMER_KEY_PARAM_NAME, &self.consumer_key),
-            ParamPair::pair(
-                OAUTH_SIGNATURE_METHOD_PARAM_NAME,
-                OAUTH_SIGNATURE_METHOD_HMAC_VALUE,
-            ),
-            ParamPair::pair(OAUTH_TIMESTAMP_PARAM_NAME, timestamp.to_string()),
-            ParamPair::pair(OAUTH_NONCE_PARAM_NAME, nonce),
-            ParamPair::pair(OAUTH_VERSION_PARAM_NAME, OAUTH_VERSION_VALUE),
-        ];
-        if include_callback {
-            params.push(ParamPair::pair(
-                OAUTH_CALLBACK_PARAM_NAME,
-                OAUTH_CALLBACK_OOB_VALUE,
-            ))
-        }
-        params
     }
 
     pub fn oauth_header(&self, param_pairs: &[ParamPair], signature: impl AsRef<str>) -> String {

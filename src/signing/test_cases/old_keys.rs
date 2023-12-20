@@ -39,7 +39,7 @@ fn test_request_token() {
     let url = consumer.request_url().clone();
 
     let (timestamp, nonce) = consumer.nonce().unwrap();
-    let pairs = consumer.oauth_standard_param_pairs(timestamp, &nonce, true);
+    let pairs = consumer.oauth_param_list(timestamp, &nonce, true, false, false);
 
     let string_to_sign = concat_request_elements(method, &url, pairs.iter().cloned());
 
