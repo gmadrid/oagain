@@ -1,3 +1,4 @@
+use std::string::FromUtf8Error;
 use thiserror::Error;
 
 mod config;
@@ -32,6 +33,9 @@ pub enum OagainError {
     #[error("A required path is missing from a URL, {0}.")]
     MissingPath(String),
 
+    #[error("The request token is missing. Perhaps you're calling stuff out of order.")]
+    MissingRequestToken,
+
     #[error("A required scheme is missing from a URL, {0}.")]
     MissingScheme(String),
 
@@ -43,6 +47,9 @@ pub enum OagainError {
 
     #[error("A parse error occurred in a URL.")]
     UrlParseError(#[from] url::ParseError),
+
+    #[error("An error occurred converting a String to Utf-8")]
+    Utf3Error(#[from] FromUtf8Error),
 }
 
 /// Result type for the OAgain library.

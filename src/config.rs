@@ -2,6 +2,7 @@ use std::convert::TryFrom;
 
 use url::Url;
 
+use crate::constants::{OAUTH_CONSUMER_KEY_PARAM_NAME, OAUTH_TOKEN_PARAM_NAME};
 use crate::{OagainError, Result};
 
 /// Request URLs as defined in Spec 4.1.
@@ -10,6 +11,9 @@ pub struct Config {
     pub request_token_url: Url,
     pub user_authorization_url: Url,
     pub access_token_url: Url,
+
+    pub user_auth_key_param_name: String,
+    pub user_auth_token_param_name: String,
 }
 
 impl Config {
@@ -22,9 +26,22 @@ impl Config {
             request_token_url: Url::try_from(request_token_url.as_ref())?,
             user_authorization_url: Url::try_from(user_authorization_url.as_ref())?,
             access_token_url: Url::try_from(access_token_url.as_ref())?,
+
+            user_auth_key_param_name: OAUTH_CONSUMER_KEY_PARAM_NAME.into(),
+            user_auth_token_param_name: OAUTH_TOKEN_PARAM_NAME.into(),
         };
         config.validate()?;
         Ok(config)
+    }
+
+    pub fn set_user_auth_param_names(
+        mut self,
+        key_name: impl AsRef<str>,
+        token_name: impl AsRef<str>,
+    ) -> Self {
+        self.user_auth_key_param_name = key_name.as_ref().into();
+        self.user_auth_token_param_name = token_name.as_ref().into();
+        self
     }
 
     /// Check that we meet the requirements in Spec 4.1
