@@ -1,9 +1,10 @@
 use crate::constants::{OAUTH_CALLBACK_OOB_VALUE, OAUTH_CALLBACK_PARAM_NAME};
+use crate::consumer::request_scheme::{RequestScheme, RequestTokenScheme};
 use crate::consumer::Consumer;
 use crate::consumer::ConsumerTestFuncs;
 use crate::nonce_provider::{BasicNonce, TestEpochProvider};
 use crate::parameters::ParamPair;
-use crate::signing::{concat_request_elements, sign_string_hmac};
+use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
 use crate::test_constants::{ACCESS_TOKEN_URL, REQUEST_TOKEN_URL, USER_AUTHORIZATION_URL};
 use crate::Config;
 
@@ -14,11 +15,7 @@ use crate::Config;
 /// test cases that mirror the data for eTrade.
 
 fn config_with_etrade_urls() -> Config {
-    Config {
-        request_token_url: REQUEST_TOKEN_URL.parse().unwrap(),
-        user_authorization_url: USER_AUTHORIZATION_URL.parse().unwrap(),
-        access_token_url: ACCESS_TOKEN_URL.parse().unwrap(),
-    }
+    Config::new(REQUEST_TOKEN_URL, USER_AUTHORIZATION_URL, ACCESS_TOKEN_URL).unwrap()
 }
 
 fn consumer_with_known_timestamp(timestamp: u32) -> Consumer<BasicNonce<TestEpochProvider>> {
@@ -46,14 +43,14 @@ fn test_request_token() {
     //consumer.request_url().clone();
 
     let (timestamp, nonce) = consumer.nonce().unwrap();
-    let pairs = consumer.oauth_standard_param_pairs(timestamp, &nonce);
+    let pairs = consumer.oauth_standard_param_pairs(timestamp, &nonce, true);
     println!("timestamp: {}, nonce: {}", timestamp, nonce);
 
     let mut all_pairs = pairs.clone();
-    all_pairs.push(ParamPair::pair(
-        OAUTH_CALLBACK_PARAM_NAME,
-        OAUTH_CALLBACK_OOB_VALUE,
-    ));
+    //    all_pairs.push(ParamPair::pair(
+    //        OAUTH_CALLBACK_PARAM_NAME,
+    //        OAUTH_CALLBACK_OOB_VALUE,
+    //    ));
 
     let string_to_sign = concat_request_elements(method, &url, all_pairs.iter().cloned());
 
@@ -61,13 +58,17 @@ fn test_request_token() {
     "GET&https%3A%2F%2Fphotos.example.net%2Frequest_token&oauth_callback%3Doob%26oauth_consumer_key%3Df94997add0b18f6c81e43b9843149042%26oauth_nonce%3Dnonce-1702901903-0%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1702901903%26oauth_version%3D1.0";
     assert_eq!(signature_base_string, string_to_sign);
 
-    let signing_key = consumer.request_token_signing_key().unwrap();
+    let signing_key = make_signing_key(
+        &consumer.consumer_secret,
+        RequestTokenScheme.token(&consumer).unwrap(),
+    );
+    //let signing_key = consumer.request_token_signing_key().unwrap();
     assert_eq!("56d240d097f004525b6a1ed6fba27343&", signing_key);
 
     let signature = sign_string_hmac(signing_key, signature_base_string);
     assert_eq!("6cTuGtNttPj1MotXdq2QYesjJ6g=", signature);
 
-    let expected_header = r#"OAuth oauth_consumer_key="f94997add0b18f6c81e43b9843149042", oauth_nonce="nonce-1702901903-0", oauth_signature_method="HMAC-SHA1", oauth_timestamp="1702901903", oauth_version="1.0", oauth_signature="6cTuGtNttPj1MotXdq2QYesjJ6g%3D""#;
+    let expected_header = r#"OAuth oauth_callback="oob", oauth_consumer_key="f94997add0b18f6c81e43b9843149042", oauth_nonce="nonce-1702901903-0", oauth_signature_method="HMAC-SHA1", oauth_timestamp="1702901903", oauth_version="1.0", oauth_signature="6cTuGtNttPj1MotXdq2QYesjJ6g%3D""#;
     let oauth_header = consumer.oauth_header(&pairs, signature);
     assert_eq!(expected_header, oauth_header);
 }

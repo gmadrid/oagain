@@ -20,7 +20,7 @@ use request_scheme::AccessTokenScheme;
 use request_scheme::RequestScheme;
 use request_scheme::RequestTokenScheme;
 
-mod request_scheme;
+pub(crate) mod request_scheme;
 
 trait BoolToOption<T> {
     fn option(self, val: T) -> Option<T>;
@@ -41,8 +41,8 @@ pub type BasicConsumer = Consumer<BasicNonce<SystemEpochProvider>>;
 
 #[derive(Debug)]
 pub struct Consumer<NP: NonceProvider> {
-    consumer_key: String,
-    consumer_secret: String,
+    pub(crate) consumer_key: String,
+    pub(crate) consumer_secret: String,
     nonce_provider: NP,
     config: Config,
 
