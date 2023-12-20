@@ -1,9 +1,7 @@
-use crate::constants::{OAUTH_CALLBACK_OOB_VALUE, OAUTH_CALLBACK_PARAM_NAME};
 use crate::consumer::request_scheme::{RequestScheme, RequestTokenScheme};
 use crate::consumer::Consumer;
 use crate::consumer::ConsumerTestFuncs;
 use crate::nonce_provider::{BasicNonce, TestEpochProvider};
-use crate::parameters::ParamPair;
 use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
 use crate::test_constants::{ACCESS_TOKEN_URL, REQUEST_TOKEN_URL, USER_AUTHORIZATION_URL};
 use crate::Config;
@@ -40,19 +38,10 @@ fn test_request_token() {
     let method = "GET";
     let url = consumer.request_url().clone();
 
-    //consumer.request_url().clone();
-
     let (timestamp, nonce) = consumer.nonce().unwrap();
     let pairs = consumer.oauth_standard_param_pairs(timestamp, &nonce, true);
-    println!("timestamp: {}, nonce: {}", timestamp, nonce);
 
-    let mut all_pairs = pairs.clone();
-    //    all_pairs.push(ParamPair::pair(
-    //        OAUTH_CALLBACK_PARAM_NAME,
-    //        OAUTH_CALLBACK_OOB_VALUE,
-    //    ));
-
-    let string_to_sign = concat_request_elements(method, &url, all_pairs.iter().cloned());
+    let string_to_sign = concat_request_elements(method, &url, pairs.iter().cloned());
 
     let signature_base_string: &str =
     "GET&https%3A%2F%2Fphotos.example.net%2Frequest_token&oauth_callback%3Doob%26oauth_consumer_key%3Df94997add0b18f6c81e43b9843149042%26oauth_nonce%3Dnonce-1702901903-0%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1702901903%26oauth_version%3D1.0";

@@ -58,7 +58,6 @@ impl Config {
         if url.scheme().is_empty() {
             return Err(OagainError::MissingScheme(url.to_string()));
         }
-        println!("URL: {} {:?}", url.has_authority(), url);
         if !url.has_authority() {
             return Err(OagainError::MissingAuthority(url.to_string()));
         }

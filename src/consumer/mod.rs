@@ -84,7 +84,6 @@ impl<NP: NonceProvider> Consumer<NP> {
 
     pub fn set_verification_code(&mut self, verification_code: impl AsRef<str>) {
         self.verification_code = Some(verification_code.as_ref().to_string());
-        println!("verification code set to '{}'", verification_code.as_ref());
     }
 
     pub fn retrieve_request_token(&mut self) -> Result<()> {
@@ -138,11 +137,10 @@ impl<NP: NonceProvider> Consumer<NP> {
                 pairs.append_pair(&param.name, &param.value.unwrap_or_default());
             }
         }
-        let request = client.get(url).header("Authorization", auth_header);
-        println!("\nRequest: {:?}", request);
-
-        let response = request.send()?;
-        println!("\nResponse: {:?}", response);
+        let response = client
+            .get(url)
+            .header("Authorization", auth_header)
+            .send()?;
 
         Ok(response)
     }
