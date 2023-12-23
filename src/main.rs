@@ -28,7 +28,7 @@ fn main() -> oagain::Result<()> {
     std::io::stdout().flush()?;
     let mut code: String = Default::default();
     std::io::stdin().read_line(&mut code)?;
-    consumer.set_verification_code(code.trim());
+    //consumer.set_verification_code(code.trim());
 
     Ok(())
 }

@@ -39,6 +39,9 @@ pub enum OagainError {
     #[error("A required scheme is missing from a URL, {0}.")]
     MissingScheme(String),
 
+    #[error("A required token secret was not found")]
+    MissingTokenSecret,
+
     #[error("A reqwest error")]
     ReqwestError(#[from] reqwest::Error),
 

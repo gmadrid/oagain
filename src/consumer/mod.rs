@@ -56,10 +56,64 @@ pub struct Consumer<NP: NonceProvider> {
     nonce_provider: NP,
     config: Config,
 
-    request_token: Option<String>,
-    token_secret: Option<String>,
-    verification_code: Option<String>,
-    access_token: Option<String>,
+    state: ConsumerState,
+}
+
+#[derive(Debug, Default)]
+pub enum ConsumerState {
+    #[default]
+    NoAuth,
+
+    RequestToken {
+        request_token: String,
+        token_secret: String,
+    },
+
+    UserAuth {
+        request_token: String,
+        token_secret: String,
+        verification_code: String,
+    },
+
+    FullAuth {
+        access_token: String,
+        token_secret: String,
+    },
+}
+
+impl ConsumerState {
+    fn request_token(&self) -> Option<&str> {
+        match self {
+            ConsumerState::RequestToken { request_token, .. } => Some(request_token),
+            ConsumerState::UserAuth { request_token, .. } => Some(request_token),
+            _ => None,
+        }
+    }
+
+    fn token_secret(&self) -> Option<&str> {
+        match self {
+            ConsumerState::RequestToken { token_secret, .. } => Some(token_secret),
+            ConsumerState::UserAuth { token_secret, .. } => Some(token_secret),
+            ConsumerState::FullAuth { token_secret, .. } => Some(token_secret),
+            ConsumerState::NoAuth => None,
+        }
+    }
+
+    fn verification_code(&self) -> Option<&str> {
+        match self {
+            ConsumerState::UserAuth {
+                verification_code, ..
+            } => Some(verification_code),
+            _ => None,
+        }
+    }
+
+    fn access_token(&self) -> Option<&str> {
+        match self {
+            ConsumerState::FullAuth { access_token, .. } => Some(access_token),
+            _ => None,
+        }
+    }
 }
 
 impl<NP: NonceProvider> Consumer<NP> {
@@ -85,34 +139,35 @@ impl<NP: NonceProvider> Consumer<NP> {
             consumer_secret: consumer_secret.into(),
             nonce_provider,
             config,
-            request_token: None,
-            verification_code: None,
-            access_token: None,
-            token_secret: None,
+            state: Default::default(),
         })
-    }
-
-    pub fn set_verification_code(&mut self, verification_code: impl AsRef<str>) {
-        self.verification_code = Some(verification_code.as_ref().to_string());
     }
 
     pub fn retrieve_request_token(&mut self) -> Result<()> {
         let response = self.canned_request(&RequestTokenScheme)?;
         let response_str: String = String::from_utf8(Vec::from(response.bytes()?))?;
-        println!("response_str: {}", response_str);
+
+        // TODO: check the incoming state.
 
         let params = decode_params_string(response_str);
+        let mut request_token = None;
+        let mut token_secret = None;
         for param in params {
             let name = param.name;
             if name == "oauth_token" {
                 // TODO: Do you want to check for None?
-                self.request_token = param.value;
+                request_token = param.value;
             } else if name == "oauth_token_secret" {
                 // TODO: Do you want to check for None?
-                self.token_secret = param.value;
+                token_secret = param.value;
             }
         }
         // TODO: At this point, you should check to make sure that both params were present.
+        self.state = ConsumerState::RequestToken {
+            request_token: request_token.ok_or(OagainError::MissingRequestToken)?,
+            token_secret: token_secret.ok_or(OagainError::MissingTokenSecret)?,
+        };
+
         Ok(())
     }
 
@@ -125,8 +180,8 @@ impl<NP: NonceProvider> Consumer<NP> {
     pub fn make_user_auth_url(&mut self) -> Result<Url> {
         let mut base_url = self.config.user_authorization_url.clone();
         let request_token = self
-            .request_token
-            .as_ref()
+            .state
+            .request_token()
             .ok_or(OagainError::MissingRequestToken)?;
         base_url
             .query_pairs_mut()
@@ -200,11 +255,11 @@ impl<NP: NonceProvider> Consumer<NP> {
             (OAUTH_TOKEN_PARAM_NAME, &|| {
                 // TODO: bad unwrap
                 // TODO: need to use access_token sometimes.
-                include_token.option_with(|| self.request_token.as_ref().unwrap().clone())
+                include_token.option_with(|| self.state.request_token().unwrap().to_string())
             }),
             (OAUTH_VERIFIER_PARAM_NAME, &|| {
                 // TODO: bad unwrap
-                include_verifier.option_with(|| self.verification_code.as_ref().unwrap().clone())
+                include_verifier.option_with(|| self.state.verification_code().unwrap().to_string())
             }),
         ];
 
