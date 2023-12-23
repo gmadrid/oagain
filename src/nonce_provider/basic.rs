@@ -1,6 +1,6 @@
+use crate::error::Result;
 use crate::nonce_provider::epoch_provider::{EpochProvider, SystemEpochProvider};
 use crate::nonce_provider::NonceProvider;
-use crate::Result;
 use std::collections::HashSet;
 
 // TODO: you could add a nonce_generator to make the nonce value random.

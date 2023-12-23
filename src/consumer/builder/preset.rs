@@ -1,5 +1,5 @@
 use crate::consumer::builder::Builder;
-use crate::Result;
+use crate::error::Result;
 use url::Url;
 
 pub trait Preset {

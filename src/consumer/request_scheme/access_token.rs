@@ -11,7 +11,10 @@ impl RequestScheme for AccessTokenScheme {
         todo!()
     }
 
-    fn token<'a, NP: NonceProvider>(&self, consumer: &'a Consumer<NP>) -> crate::Result<&'a str> {
+    fn token<'a, NP: NonceProvider>(
+        &self,
+        consumer: &'a Consumer<NP>,
+    ) -> crate::error::Result<&'a str> {
         todo!()
     }
 

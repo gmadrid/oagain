@@ -37,7 +37,10 @@ pub use request_token::RequestTokenScheme;
 
 pub trait RequestScheme {
     fn extra_params(&self) -> Vec<ParamPair>;
-    fn token<'a, NP: NonceProvider>(&self, consumer: &'a Consumer<NP>) -> crate::Result<&'a str>;
+    fn token<'a, NP: NonceProvider>(
+        &self,
+        consumer: &'a Consumer<NP>,
+    ) -> crate::error::Result<&'a str>;
     fn method(&self) -> &'static str;
     fn url<'a, NP: NonceProvider>(&self, consumer: &'a Consumer<NP>) -> &'a Url;
 }

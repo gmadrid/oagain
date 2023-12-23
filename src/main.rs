@@ -3,7 +3,8 @@ use std::io::{Read, Write};
 
 use toml::Table;
 
-use oagain::{BasicConsumer, ETradePreset, OagainError, Result};
+use oagain::{BasicConsumer, ETradePreset};
+use oagain::{OagainError, Result};
 
 fn main() -> Result<()> {
     let (key, secret) = read_key_and_secret()?;

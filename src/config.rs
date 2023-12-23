@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use url::Url;
 
 use crate::constants::{OAUTH_CONSUMER_KEY_PARAM_NAME, OAUTH_TOKEN_PARAM_NAME};
-use crate::{OagainError, Result};
+use crate::error::{OagainError, Result};
 
 /// Request URLs as defined in Spec 4.1.
 #[derive(Debug)]

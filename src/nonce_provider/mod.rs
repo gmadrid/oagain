@@ -1,7 +1,7 @@
 mod basic;
 mod epoch_provider;
 
-use crate::Result;
+use crate::error::Result;
 
 pub trait NonceProvider {
     // Return a (timestamp, nonce) pair.

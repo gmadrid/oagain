@@ -17,10 +17,10 @@ pub mod preset;
 
 use crate::consumer::builder::preset::Preset;
 use crate::consumer::Consumer;
+use crate::error::OagainError::BadUrl;
+use crate::error::{OagainError, Result};
 use crate::nonce_provider::{BasicNonce, NonceProvider};
-use crate::OagainError::BadUrl;
-use crate::Result;
-use crate::{BasicConsumer, OagainError};
+use crate::BasicConsumer;
 use url::Url;
 
 #[derive(Debug)]

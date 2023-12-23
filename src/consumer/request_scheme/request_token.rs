@@ -12,7 +12,10 @@ impl RequestScheme for RequestTokenScheme {
         vec![]
     }
 
-    fn token<'a, NP: NonceProvider>(&self, _consumer: &'a Consumer<NP>) -> crate::Result<&'a str> {
+    fn token<'a, NP: NonceProvider>(
+        &self,
+        _consumer: &'a Consumer<NP>,
+    ) -> crate::error::Result<&'a str> {
         Ok("")
     }
 

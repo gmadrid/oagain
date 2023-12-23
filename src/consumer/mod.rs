@@ -16,11 +16,10 @@ use crate::constants::{
     OAUTH_VERIFIER_PARAM_NAME, OAUTH_VERSION_PARAM_NAME, OAUTH_VERSION_VALUE,
 };
 use crate::consumer::builder::Builder;
+use crate::error::{OagainError, Result};
 use crate::nonce_provider::{BasicNonce, NonceProvider, SystemEpochProvider};
 use crate::parameters::{decode_params_string, ParamPair};
 use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
-use crate::{OagainError, Result};
-
 use crate::util::BoolToOption;
 pub use builder::preset::ETradePreset;
 
