@@ -1,4 +1,3 @@
-mod config;
 mod constants;
 mod consumer;
 mod error;
@@ -11,7 +10,6 @@ mod util;
 #[cfg(test)]
 mod test_constants;
 
-pub use config::Config;
 pub use consumer::BasicConsumer;
 pub use consumer::ETradePreset;
 pub use error::{OagainError, Result};
