@@ -21,6 +21,6 @@ impl RequestScheme for RequestTokenScheme {
     }
 
     fn url<'a, NP: NonceProvider>(&self, consumer: &'a Consumer<NP>) -> &'a Url {
-        &consumer.config.request_token_url
+        &consumer.request_token_url
     }
 }

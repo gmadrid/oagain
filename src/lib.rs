@@ -21,20 +21,29 @@ pub enum OagainError {
     #[error("An IO error occurred: {0}")]
     IoError(#[from] std::io::Error),
 
+    #[error("The access token url was missing while creating the Consumer")]
+    MissingAccessTokenUrl,
+
     #[error("A required authority is missing from a URL, {0}.")]
     MissingAuthority(String),
 
-    #[error("The consumer secret was not found in the secrets file.")]
-    MissingConsumerSecret,
+    #[error("The user authorization URL is not specified while creating the Consumer.")]
+    MissingAuthUrl,
 
-    #[error("The consumer token was not found in the secrets file.")]
-    MissingConsumerToken,
+    #[error("The consumer secret was not found in the secrets file.")]
+    MissingConsumerSecret(&'static str),
+
+    #[error("The consumer token was not found ({0}).")]
+    MissingConsumerToken(&'static str),
 
     #[error("A required path is missing from a URL, {0}.")]
     MissingPath(String),
 
     #[error("The request token is missing. Perhaps you're calling stuff out of order.")]
     MissingRequestToken,
+
+    #[error("The request token url is missing.")]
+    MissingRequestTokenUrl,
 
     #[error("A required scheme is missing from a URL, {0}.")]
     MissingScheme(String),
@@ -60,3 +69,4 @@ pub type Result<T> = std::result::Result<T, OagainError>;
 
 pub use config::Config;
 pub use consumer::BasicConsumer;
+pub use consumer::ETradePreset;
