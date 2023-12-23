@@ -22,9 +22,11 @@ use crate::parameters::{decode_params_string, ParamPair};
 use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
 use crate::util::BoolToOption;
 pub use builder::preset::ETradePreset;
+use state::ConsumerState;
 
 mod builder;
 pub(crate) mod request_scheme;
+mod state;
 
 /// A basic consumer that uses the standard time-based nonce provider.
 pub type BasicConsumer = Consumer<BasicNonce<SystemEpochProvider>>;
@@ -43,57 +45,6 @@ pub struct Consumer<NP: NonceProvider> {
     user_auth_token_param_name: String,
 
     state: ConsumerState,
-}
-
-#[derive(Debug, Default)]
-pub enum ConsumerState {
-    #[default]
-    NoAuth,
-
-    RequestToken {
-        request_token: String,
-        token_secret: String,
-    },
-
-    UserAuth {
-        request_token: String,
-        token_secret: String,
-        verification_code: String,
-    },
-
-    FullAuth {
-        access_token: String,
-        token_secret: String,
-    },
-}
-
-impl ConsumerState {
-    fn token(&self) -> Option<&str> {
-        match self {
-            ConsumerState::RequestToken { request_token, .. }
-            | ConsumerState::UserAuth { request_token, .. } => Some(request_token),
-            ConsumerState::FullAuth { access_token, .. } => Some(access_token),
-            _ => None,
-        }
-    }
-
-    fn token_secret(&self) -> Option<&str> {
-        match self {
-            ConsumerState::RequestToken { token_secret, .. }
-            | ConsumerState::UserAuth { token_secret, .. }
-            | ConsumerState::FullAuth { token_secret, .. } => Some(token_secret),
-            ConsumerState::NoAuth => None,
-        }
-    }
-
-    fn verification_code(&self) -> Option<&str> {
-        match self {
-            ConsumerState::UserAuth {
-                verification_code, ..
-            } => Some(verification_code),
-            _ => None,
-        }
-    }
 }
 
 impl<NP: NonceProvider> Consumer<NP> {

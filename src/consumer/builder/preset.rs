@@ -1,6 +1,5 @@
 use crate::consumer::builder::Builder;
 use crate::error::Result;
-use url::Url;
 
 pub trait Preset {
     fn setup_builder(self, builder: Builder) -> Result<Builder>;
