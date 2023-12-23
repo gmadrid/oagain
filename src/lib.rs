@@ -15,6 +15,9 @@ mod test_constants;
 /// Error type for the OAgain library.
 #[derive(Error, Debug)]
 pub enum OagainError {
+    #[error("A bad URL was passed to Consumer Builder")]
+    BadUrl,
+
     #[error("A param starting with 'oauth_' is disallowed, {0}")]
     DisallowedOauthParam(String),
 

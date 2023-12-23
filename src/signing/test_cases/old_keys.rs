@@ -22,9 +22,12 @@ fn consumer_with_known_timestamp(timestamp: u32) -> Consumer<BasicNonce<TestEpoc
     let nonce_provider = BasicNonce::new(epoch_provider);
 
     Consumer::<BasicNonce<TestEpochProvider>>::builder()
-        .set_request_token_url(Url::parse(REQUEST_TOKEN_URL).unwrap())
-        .set_user_authorization_url(Url::parse(USER_AUTHORIZATION_URL).unwrap())
-        .set_access_token_url(Url::parse(ACCESS_TOKEN_URL).unwrap())
+        .set_request_token_url(REQUEST_TOKEN_URL)
+        .unwrap()
+        .set_user_authorization_url(USER_AUTHORIZATION_URL)
+        .unwrap()
+        .set_access_token_url(ACCESS_TOKEN_URL)
+        .unwrap()
         .set_consumer_key("f94997add0b18f6c81e43b9843149042")
         .set_consumer_secret("56d240d097f004525b6a1ed6fba27343")
         .build_with_nonce_provider(nonce_provider)

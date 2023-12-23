@@ -18,6 +18,7 @@ pub mod preset;
 use crate::consumer::builder::preset::Preset;
 use crate::consumer::Consumer;
 use crate::nonce_provider::{BasicNonce, NonceProvider};
+use crate::OagainError::BadUrl;
 use crate::Result;
 use crate::{BasicConsumer, OagainError};
 use url::Url;
@@ -82,19 +83,19 @@ impl Builder {
         preset.setup_builder(self)
     }
 
-    pub fn set_request_token_url(mut self, url: impl Into<Url>) -> Self {
-        self.request_token_url = Some(url.into());
-        self
+    pub fn set_request_token_url(mut self, url: impl TryInto<Url>) -> Result<Self> {
+        self.request_token_url = Some(url.try_into().map_err(|_| BadUrl)?);
+        Ok(self)
     }
 
-    pub fn set_user_authorization_url(mut self, url: impl Into<Url>) -> Self {
-        self.user_authorization_url = Some(url.into());
-        self
+    pub fn set_user_authorization_url(mut self, url: impl TryInto<Url>) -> Result<Self> {
+        self.user_authorization_url = Some(url.try_into().map_err(|_| BadUrl)?);
+        Ok(self)
     }
 
-    pub fn set_access_token_url(mut self, url: impl Into<Url>) -> Self {
-        self.access_token_url = Some(url.into());
-        self
+    pub fn set_access_token_url(mut self, url: impl TryInto<Url>) -> Result<Self> {
+        self.access_token_url = Some(url.try_into().map_err(|_| BadUrl)?);
+        Ok(self)
     }
 
     pub fn set_user_auth_key_param_name(mut self, val: impl Into<String>) -> Self {
