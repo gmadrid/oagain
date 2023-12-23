@@ -21,33 +21,11 @@ use crate::parameters::{decode_params_string, ParamPair};
 use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
 use crate::{OagainError, Result};
 
+use crate::util::BoolToOption;
 pub use builder::preset::ETradePreset;
 
 mod builder;
 pub(crate) mod request_scheme;
-
-trait BoolToOption<T> {
-    fn option(self, val: T) -> Option<T>;
-    fn option_with(self, val_func: impl Fn() -> T) -> Option<T>;
-}
-
-impl<T> BoolToOption<T> for bool {
-    fn option(self, val: T) -> Option<T> {
-        if self {
-            val.into()
-        } else {
-            None
-        }
-    }
-
-    fn option_with(self, val_func: impl Fn() -> T) -> Option<T> {
-        if self {
-            val_func().into()
-        } else {
-            None
-        }
-    }
-}
 
 /// A basic consumer that uses the standard time-based nonce provider.
 pub type BasicConsumer = Consumer<BasicNonce<SystemEpochProvider>>;
@@ -91,19 +69,20 @@ pub enum ConsumerState {
 }
 
 impl ConsumerState {
-    fn request_token(&self) -> Option<&str> {
+    fn token(&self) -> Option<&str> {
         match self {
-            ConsumerState::RequestToken { request_token, .. } => Some(request_token),
-            ConsumerState::UserAuth { request_token, .. } => Some(request_token),
+            ConsumerState::RequestToken { request_token, .. }
+            | ConsumerState::UserAuth { request_token, .. } => Some(request_token),
+            ConsumerState::FullAuth { access_token, .. } => Some(access_token),
             _ => None,
         }
     }
 
     fn token_secret(&self) -> Option<&str> {
         match self {
-            ConsumerState::RequestToken { token_secret, .. } => Some(token_secret),
-            ConsumerState::UserAuth { token_secret, .. } => Some(token_secret),
-            ConsumerState::FullAuth { token_secret, .. } => Some(token_secret),
+            ConsumerState::RequestToken { token_secret, .. }
+            | ConsumerState::UserAuth { token_secret, .. }
+            | ConsumerState::FullAuth { token_secret, .. } => Some(token_secret),
             ConsumerState::NoAuth => None,
         }
     }
@@ -116,45 +95,12 @@ impl ConsumerState {
             _ => None,
         }
     }
-
-    fn access_token(&self) -> Option<&str> {
-        match self {
-            ConsumerState::FullAuth { access_token, .. } => Some(access_token),
-            _ => None,
-        }
-    }
 }
 
 impl<NP: NonceProvider> Consumer<NP> {
     pub fn builder() -> Builder {
         Builder::default()
     }
-
-    // /// Creates a new BasicConsumer with the provided `consumer_key`, `consumer_secret`, and `config`.
-    // pub fn new(
-    //     consumer_key: impl Into<String>,
-    //     consumer_secret: impl Into<String>,
-    //     config: Config,
-    // ) -> Result<BasicConsumer> {
-    //     Consumer::new_with_nonce(consumer_key, consumer_secret, config, BasicNonce::default())
-    // }
-    //
-    // /// Creates a new Consumer with the provided `consumer_key`, `consumer_secret`, and `config`.
-    // /// The new consumer will used the provided `nonce_provider` for generating nonces.
-    // pub fn new_with_nonce(
-    //     consumer_key: impl Into<String>,
-    //     consumer_secret: impl Into<String>,
-    //     config: Config,
-    //     nonce_provider: NP,
-    // ) -> Result<Self> {
-    //     Ok(Consumer {
-    //         consumer_key: consumer_key.into(),
-    //         consumer_secret: consumer_secret.into(),
-    //         nonce_provider,
-    //         config,
-    //         state: Default::default(),
-    //     })
-    // }
 
     pub fn retrieve_request_token(&mut self) -> Result<()> {
         let response = self.canned_request(&RequestTokenScheme)?;
@@ -192,10 +138,7 @@ impl<NP: NonceProvider> Consumer<NP> {
 
     pub fn make_user_auth_url(&mut self) -> Result<Url> {
         let mut base_url = self.user_authorization_url.clone();
-        let request_token = self
-            .state
-            .request_token()
-            .ok_or(OagainError::MissingRequestToken)?;
+        let request_token = self.state.token().ok_or(OagainError::MissingRequestToken)?;
         base_url
             .query_pairs_mut()
             .append_pair(&self.user_auth_token_param_name, request_token)
@@ -268,7 +211,7 @@ impl<NP: NonceProvider> Consumer<NP> {
             (OAUTH_TOKEN_PARAM_NAME, &|| {
                 // TODO: bad unwrap
                 // TODO: need to use access_token sometimes.
-                include_token.option_with(|| self.state.request_token().unwrap().to_string())
+                include_token.option_with(|| self.state.token().unwrap().to_string())
             }),
             (OAUTH_VERIFIER_PARAM_NAME, &|| {
                 // TODO: bad unwrap

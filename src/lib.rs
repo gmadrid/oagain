@@ -8,6 +8,7 @@ mod nonce_provider;
 mod parameters;
 mod pencoding;
 mod signing;
+mod util;
 
 #[cfg(test)]
 mod test_constants;
