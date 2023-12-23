@@ -5,6 +5,7 @@ use crate::nonce_provider::{BasicNonce, TestEpochProvider};
 use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
 use crate::test_constants::{ACCESS_TOKEN_URL, REQUEST_TOKEN_URL, USER_AUTHORIZATION_URL};
 use crate::Config;
+use url::Url;
 
 /// https://lti.tools/oauth/ has tools for generating signatures (and all of the intermediates)
 /// for a user-supplied configuration.
@@ -20,13 +21,14 @@ fn consumer_with_known_timestamp(timestamp: u32) -> Consumer<BasicNonce<TestEpoc
     let epoch_provider = TestEpochProvider::new(timestamp);
     let nonce_provider = BasicNonce::new(epoch_provider);
 
-    Consumer::new_with_nonce(
-        "f94997add0b18f6c81e43b9843149042",
-        "56d240d097f004525b6a1ed6fba27343",
-        config_with_etrade_urls(),
-        nonce_provider,
-    )
-    .unwrap()
+    Consumer::<BasicNonce<TestEpochProvider>>::builder()
+        .set_request_token_url(Url::parse(REQUEST_TOKEN_URL).unwrap())
+        .set_user_authorization_url(Url::parse(USER_AUTHORIZATION_URL).unwrap())
+        .set_access_token_url(Url::parse(ACCESS_TOKEN_URL).unwrap())
+        .set_consumer_key("f94997add0b18f6c81e43b9843149042")
+        .set_consumer_secret("56d240d097f004525b6a1ed6fba27343")
+        .build_with_nonce_provider(nonce_provider)
+        .unwrap()
 }
 
 // This is December 18, 2023, 12:18:23UTC

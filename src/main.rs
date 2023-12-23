@@ -14,17 +14,6 @@ fn main() -> Result<()> {
         .set_consumer_secret(secret)
         .build()?;
 
-    // let config = Config::new(
-    //     "https://api.etrade.com/oauth/request_token",
-    //     "https://us.etrade.com/e/t/etws/authorize",
-    //     "https://api.etrade.com/oauth/access_token",
-    // )?
-    // // Note that the eTrade documentation (https://apisb.etrade.com/docs/api/authorization/authorize.html)
-    // // is not correct. The key and token param names are non-standard. They are listed in the docs
-    // // incorrectly, but the Example is correct.
-    // .set_user_auth_param_names("key", "token");
-    //
-    // let mut consumer = BasicConsumer::new(key, secret, config)?;
     consumer.retrieve_request_token()?;
 
     let url = consumer.make_user_auth_url()?;
