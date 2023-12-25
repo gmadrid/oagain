@@ -7,6 +7,8 @@ use oagain::{BasicConsumer, ETradePreset};
 use oagain::{OagainError, Result};
 
 fn main() -> Result<()> {
+    env_logger::init();
+
     let (key, secret) = read_key_and_secret()?;
 
     let mut consumer = BasicConsumer::builder()
@@ -27,7 +29,9 @@ fn main() -> Result<()> {
     std::io::stdout().flush()?;
     let mut code: String = Default::default();
     std::io::stdin().read_line(&mut code)?;
-    //consumer.set_verification_code(code.trim());
+    consumer.set_verification_code(code.trim())?;
+
+    consumer.retrieve_access_token()?;
 
     Ok(())
 }

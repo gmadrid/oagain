@@ -2,8 +2,9 @@ mod basic;
 mod epoch_provider;
 
 use crate::error::Result;
+use std::fmt::Debug;
 
-pub trait NonceProvider {
+pub trait NonceProvider: Debug {
     // Return a (timestamp, nonce) pair.
     fn nonce(&mut self) -> Result<(u32, String)>;
 }

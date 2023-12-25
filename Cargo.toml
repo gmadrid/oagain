@@ -16,3 +16,5 @@ hmac = { version = "0.12.1", features = [] }
 sha1 = "0.10.6"
 base64 = "0.21.5"
 toml = "0.8.8"
+log = "0.4.20"
+env_logger = "0.10.1"

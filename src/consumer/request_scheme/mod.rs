@@ -36,7 +36,10 @@ pub use request_token::RequestTokenScheme;
 */
 
 pub trait RequestScheme {
+    fn name(&self) -> &'static str;
     fn extra_params(&self) -> Vec<ParamPair>;
+
+    // TODO: I think this is unnecessary.
     fn token<'a, NP: NonceProvider>(
         &self,
         consumer: &'a Consumer<NP>,

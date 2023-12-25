@@ -8,6 +8,10 @@ pub struct RequestTokenScheme;
 
 impl RequestScheme for RequestTokenScheme {
     // TODO: return an Option
+    fn name(&self) -> &'static str {
+        "RequestTokenScheme"
+    }
+
     fn extra_params(&self) -> Vec<ParamPair> {
         vec![]
     }

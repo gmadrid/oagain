@@ -1,12 +1,14 @@
+use std::fmt::Debug;
+use std::time::UNIX_EPOCH;
+
 #[cfg(test)]
 pub mod test_provider;
 
-use std::time::UNIX_EPOCH;
-
-pub trait EpochProvider {
+pub trait EpochProvider: Debug {
     fn epoch(&self) -> u32;
 }
 
+#[derive(Debug)]
 pub struct SystemEpochProvider;
 
 impl EpochProvider for SystemEpochProvider {
@@ -21,8 +23,9 @@ impl EpochProvider for SystemEpochProvider {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use std::time::SystemTime;
+
+    use super::*;
 
     #[test]
     fn basic() {

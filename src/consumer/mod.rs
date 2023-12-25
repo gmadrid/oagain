@@ -1,6 +1,7 @@
 use std::iter::once;
 
 use itertools::Itertools;
+use log::debug;
 use reqwest::blocking::Client;
 use reqwest::blocking::Response;
 use url::Url;
@@ -21,6 +22,7 @@ use crate::nonce_provider::{BasicNonce, NonceProvider, SystemEpochProvider};
 use crate::parameters::{decode_params_string, ParamPair};
 use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
 use crate::util::BoolToOption;
+use crate::OagainError::MissingRequestToken;
 pub use builder::preset::ETradePreset;
 use state::ConsumerState;
 
@@ -80,9 +82,29 @@ impl<NP: NonceProvider> Consumer<NP> {
         Ok(())
     }
 
+    pub fn set_verification_code(&mut self, code: impl AsRef<str>) -> Result<()> {
+        self.state = ConsumerState::UserAuth {
+            request_token: self
+                .state
+                .token()
+                .ok_or(OagainError::MissingRequestToken)?
+                .to_string(),
+            token_secret: self
+                .state
+                .token_secret()
+                .ok_or(OagainError::MissingTokenSecret)?
+                .to_string(),
+            verification_code: code.as_ref().to_string(),
+        };
+        Ok(())
+    }
+
     pub fn retrieve_access_token(&mut self) -> Result<()> {
+        debug!("retrieve_access_token: {:?}", self);
         let response = self.canned_request(&AccessTokenScheme)?;
+        debug!("access raw response: {:?}", response);
         let response_str: String = String::from_utf8(Vec::from(response.bytes()?))?;
+        debug!("access response: {}", response_str);
         Ok(())
     }
 
@@ -98,6 +120,7 @@ impl<NP: NonceProvider> Consumer<NP> {
 
     fn canned_request(&mut self, req: &impl RequestScheme) -> Result<Response> {
         let auth_header = self.sign_request_from_components(req)?;
+        debug!("auth_header: {}", auth_header);
         // TODO: reuse these clients.
         let client = Client::builder().build()?;
         // TODO: make this a fold()
@@ -118,15 +141,21 @@ impl<NP: NonceProvider> Consumer<NP> {
 
     fn sign_request_from_components(&mut self, req: &impl RequestScheme) -> Result<String> {
         let (timestamp, nonce) = self.nonce()?;
-        //let standard_params = self.oauth_standard_param_pairs(timestamp, &nonce, true);
-        let standard_params = self.oauth_param_list(timestamp, nonce, true, false, false);
+        debug!("timestamp, nonce: {}, {}", timestamp, nonce);
+        let standard_params = self.oauth_param_list(timestamp, nonce);
+        debug!("standard_params: {:?}", standard_params);
         let extra_params = req.extra_params();
         let string_to_sign = {
             let all_params = standard_params.iter().cloned().chain(extra_params);
             concat_request_elements(req.method(), req.url(self), all_params)
         };
+        debug!("string_to_sign: {}", string_to_sign);
 
-        let signing_key = make_signing_key(&self.consumer_secret, req.token(self)?);
+        let signing_key = make_signing_key(
+            &self.consumer_secret,
+            self.state.token_secret().unwrap_or_default(),
+        );
+        debug!("signing_key: {}", signing_key);
         let signature = sign_string_hmac(signing_key, string_to_sign);
 
         let header = self.oauth_header(&standard_params, signature);
@@ -137,10 +166,13 @@ impl<NP: NonceProvider> Consumer<NP> {
         &self,
         timestamp: u32,
         nonce: impl AsRef<str>,
-        include_callback: bool,
-        include_token: bool,
-        include_verifier: bool,
     ) -> Vec<ParamPair> {
+        let (include_callback, include_token, include_verifier) = match &self.state {
+            ConsumerState::NoAuth => (true, false, false),
+            ConsumerState::RequestToken { .. } => (false, true, false),
+            ConsumerState::UserAuth { .. } => (false, true, true),
+            ConsumerState::FullAuth { .. } => (false, true, true),
+        };
         let pair_descriptions: &[(&'static str, &dyn Fn() -> Option<String>)] = &[
             (OAUTH_CONSUMER_KEY_PARAM_NAME, &|| {
                 Some(self.consumer_key.clone())
