@@ -12,20 +12,6 @@ impl RequestScheme for AccessTokenScheme {
         "AccessTokenScheme"
     }
 
-    fn extra_params(&self) -> Vec<ParamPair> {
-        vec![]
-    }
-
-    fn token<'a, NP: NonceProvider>(
-        &self,
-        consumer: &'a Consumer<NP>,
-    ) -> crate::error::Result<&'a str> {
-        Ok(consumer
-            .state
-            .token()
-            .ok_or(OagainError::MissingRequestToken)?)
-    }
-
     fn method(&self) -> &'static str {
         "GET"
     }

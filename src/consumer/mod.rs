@@ -125,12 +125,6 @@ impl<NP: NonceProvider> Consumer<NP> {
         let client = Client::builder().build()?;
         // TODO: make this a fold()
         let mut url = req.url(self).clone();
-        {
-            let mut pairs = url.query_pairs_mut();
-            for param in req.extra_params() {
-                pairs.append_pair(&param.name, &param.value.unwrap_or_default());
-            }
-        }
         let response = client
             .get(url)
             .header("Authorization", auth_header)
@@ -144,11 +138,8 @@ impl<NP: NonceProvider> Consumer<NP> {
         debug!("timestamp, nonce: {}, {}", timestamp, nonce);
         let standard_params = self.oauth_param_list(timestamp, nonce);
         debug!("standard_params: {:?}", standard_params);
-        let extra_params = req.extra_params();
-        let string_to_sign = {
-            let all_params = standard_params.iter().cloned().chain(extra_params);
-            concat_request_elements(req.method(), req.url(self), all_params)
-        };
+        let string_to_sign =
+            concat_request_elements(req.method(), req.url(self), standard_params.iter().cloned());
         debug!("string_to_sign: {}", string_to_sign);
 
         let signing_key = make_signing_key(
