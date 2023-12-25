@@ -14,7 +14,8 @@ use crate::constants::{
     OAUTH_CALLBACK_OOB_VALUE, OAUTH_CALLBACK_PARAM_NAME, OAUTH_CONSUMER_KEY_PARAM_NAME,
     OAUTH_NONCE_PARAM_NAME, OAUTH_SIGNATURE_METHOD_HMAC_VALUE, OAUTH_SIGNATURE_METHOD_PARAM_NAME,
     OAUTH_SIGNATURE_PARAM_NAME, OAUTH_TIMESTAMP_PARAM_NAME, OAUTH_TOKEN_PARAM_NAME,
-    OAUTH_VERIFIER_PARAM_NAME, OAUTH_VERSION_PARAM_NAME, OAUTH_VERSION_VALUE,
+    OAUTH_TOKEN_SECRET_PARAM_NAME, OAUTH_VERIFIER_PARAM_NAME, OAUTH_VERSION_PARAM_NAME,
+    OAUTH_VERSION_VALUE,
 };
 use crate::consumer::builder::Builder;
 use crate::error::{OagainError, Result};
@@ -22,7 +23,6 @@ use crate::nonce_provider::{BasicNonce, NonceProvider, SystemEpochProvider};
 use crate::parameters::{decode_params_string, ParamPair};
 use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
 use crate::util::BoolToOption;
-use crate::OagainError::MissingRequestToken;
 pub use builder::preset::ETradePreset;
 use state::ConsumerState;
 
@@ -54,9 +54,22 @@ impl<NP: NonceProvider> Consumer<NP> {
         Builder::default()
     }
 
+    pub fn get(&mut self, url: &Url) -> Result<String> {
+        let auth_header = self.sign_request_from_components("GET", url)?;
+        let client = Client::builder().build()?;
+        let response = client
+            .get(url.clone())
+            .header("Authorization", auth_header)
+            .send()?;
+        let response_str = String::from_utf8(Vec::from(response.bytes()?))?;
+        // TODO: add param processing.
+
+        Ok(response_str)
+    }
+
     pub fn retrieve_request_token(&mut self) -> Result<()> {
         let response = self.canned_request(&RequestTokenScheme)?;
-        let response_str: String = String::from_utf8(Vec::from(response.bytes()?))?;
+        let response_str = String::from_utf8(Vec::from(response.bytes()?))?;
 
         // TODO: check the incoming state.
 
@@ -105,6 +118,23 @@ impl<NP: NonceProvider> Consumer<NP> {
         debug!("access raw response: {:?}", response);
         let response_str: String = String::from_utf8(Vec::from(response.bytes()?))?;
         debug!("access response: {}", response_str);
+
+        let params = decode_params_string(response_str);
+        let mut access_token = None;
+        let mut token_secret = None;
+        for param in params {
+            if param.name == OAUTH_TOKEN_PARAM_NAME {
+                access_token = param.value;
+            } else if param.name == OAUTH_TOKEN_SECRET_PARAM_NAME {
+                token_secret = param.value;
+            }
+        }
+
+        self.state = ConsumerState::FullAuth {
+            access_token: access_token.ok_or(OagainError::MissingAccessToken)?,
+            token_secret: token_secret.ok_or(OagainError::MissingTokenSecret)?,
+        };
+
         Ok(())
     }
 
@@ -119,12 +149,12 @@ impl<NP: NonceProvider> Consumer<NP> {
     }
 
     fn canned_request(&mut self, req: &impl RequestScheme) -> Result<Response> {
-        let auth_header = self.sign_request_from_components(req)?;
+        let mut url = req.url(self).clone();
+        let auth_header = self.sign_request_from_components(req.method(), &url)?;
         debug!("auth_header: {}", auth_header);
         // TODO: reuse these clients.
         let client = Client::builder().build()?;
         // TODO: make this a fold()
-        let mut url = req.url(self).clone();
         let response = client
             .get(url)
             .header("Authorization", auth_header)
@@ -133,13 +163,17 @@ impl<NP: NonceProvider> Consumer<NP> {
         Ok(response)
     }
 
-    fn sign_request_from_components(&mut self, req: &impl RequestScheme) -> Result<String> {
+    fn sign_request_from_components(
+        &mut self,
+        method: impl AsRef<str>,
+        url: &Url,
+    ) -> Result<String> {
         let (timestamp, nonce) = self.nonce()?;
         debug!("timestamp, nonce: {}, {}", timestamp, nonce);
         let standard_params = self.oauth_param_list(timestamp, nonce);
         debug!("standard_params: {:?}", standard_params);
         let string_to_sign =
-            concat_request_elements(req.method(), req.url(self), standard_params.iter().cloned());
+            concat_request_elements(method.as_ref(), url, standard_params.iter().cloned());
         debug!("string_to_sign: {}", string_to_sign);
 
         let signing_key = make_signing_key(
@@ -162,7 +196,7 @@ impl<NP: NonceProvider> Consumer<NP> {
             ConsumerState::NoAuth => (true, false, false),
             ConsumerState::RequestToken { .. } => (false, true, false),
             ConsumerState::UserAuth { .. } => (false, true, true),
-            ConsumerState::FullAuth { .. } => (false, true, true),
+            ConsumerState::FullAuth { .. } => (false, true, false),
         };
         let pair_descriptions: &[(&'static str, &dyn Fn() -> Option<String>)] = &[
             (OAUTH_CONSUMER_KEY_PARAM_NAME, &|| {

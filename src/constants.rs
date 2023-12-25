@@ -7,6 +7,7 @@ pub const OAUTH_SIGNATURE_METHOD_PARAM_NAME: &str = "oauth_signature_method";
 pub const OAUTH_SIGNATURE_METHOD_HMAC_VALUE: &str = "HMAC-SHA1";
 pub const OAUTH_TIMESTAMP_PARAM_NAME: &str = "oauth_timestamp";
 pub const OAUTH_TOKEN_PARAM_NAME: &str = "oauth_token";
+pub const OAUTH_TOKEN_SECRET_PARAM_NAME: &str = "oauth_token_secret";
 pub const OAUTH_NONCE_PARAM_NAME: &str = "oauth_nonce";
 pub const OAUTH_VERIFIER_PARAM_NAME: &str = "oauth_verifier";
 pub const OAUTH_VERSION_PARAM_NAME: &str = "oauth_version";

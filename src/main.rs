@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 
 use toml::Table;
+use url::Url;
 
 use oagain::{BasicConsumer, ETradePreset};
 use oagain::{OagainError, Result};
@@ -32,6 +33,9 @@ fn main() -> Result<()> {
     consumer.set_verification_code(code.trim())?;
 
     consumer.retrieve_access_token()?;
+
+    let response_str = consumer.get(&Url::parse("https://api.etrade.com/v1/accounts/list")?)?;
+    println!("RESPONSE: {}", response_str);
 
     Ok(())
 }

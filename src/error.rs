@@ -13,6 +13,9 @@ pub enum OagainError {
     #[error("An IO error occurred: {0}")]
     IoError(#[from] std::io::Error),
 
+    #[error("The access token was missing from the server response")]
+    MissingAccessToken,
+
     #[error("The access token url was missing while creating the Consumer")]
     MissingAccessTokenUrl,
 
