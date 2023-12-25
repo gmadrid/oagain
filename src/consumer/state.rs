@@ -1,19 +1,23 @@
 #[derive(Debug, Default)]
 pub enum ConsumerState {
     #[default]
+    /// Initial state. Ready to retrieve a request token from the server.
     NoAuth,
 
+    /// The request token has been retrieved. Ready to produce a user auth URL.
     RequestToken {
         request_token: String,
         token_secret: String,
     },
 
+    /// The user has provided a verification code. Ready to retrieve the Access token.
     UserAuth {
         request_token: String,
         token_secret: String,
         verification_code: String,
     },
 
+    /// Access token retrieved. Ready for API requests.
     FullAuth {
         access_token: String,
         token_secret: String,

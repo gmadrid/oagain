@@ -3,6 +3,7 @@ use thiserror::Error;
 /// Error type for the OAgain library.
 #[derive(Error, Debug)]
 pub enum OagainError {
+    // TODO: I would like to figure out how to include the underlying error in this.
     #[error("A bad URL was passed to Consumer Builder")]
     BadUrl,
 

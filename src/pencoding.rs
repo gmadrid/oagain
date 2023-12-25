@@ -42,7 +42,7 @@ pub fn decode_str(s: impl AsRef<str>) -> String {
 }
 
 fn hex_nibble(ch: char) -> u8 {
-    // TODO: include a text for is_hex_digit
+    // TODO: include a test for is_hex_digit
     if ch.is_ascii_digit() {
         ch as u8 - b'0'
     } else if ch.is_ascii_uppercase() {

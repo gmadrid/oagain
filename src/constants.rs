@@ -1,3 +1,4 @@
+// These values are all harvested from the OAuth 1.0 Spec.
 pub const OAUTH_CALLBACK_PARAM_NAME: &str = "oauth_callback";
 pub const OAUTH_CALLBACK_OOB_VALUE: &str = "oob";
 pub const OAUTH_CONSUMER_KEY_PARAM_NAME: &str = "oauth_consumer_key";

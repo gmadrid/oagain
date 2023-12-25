@@ -42,7 +42,7 @@ impl ToString for ParamPair {
 
 impl From<&str> for ParamPair {
     fn from(value: &str) -> Self {
-        // TODO: better error checking in here. (Really only case that value=='' or has 2+ '='.
+        // TODO: better error checking in here. (Really only case that value=='' or has 2+ '=').
         let pieces = value.split('=').collect::<Vec<_>>();
         if pieces.len() == 1 {
             ParamPair {
@@ -55,6 +55,7 @@ impl From<&str> for ParamPair {
                 value: Some(decode_str(pieces[1])),
             }
         } else {
+            // TODO: panic is ugly.
             panic!("Panicking due to invalid input string.")
         }
     }

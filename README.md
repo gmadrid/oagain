@@ -1,1 +1,1 @@
-# An OAuth 1.0 implentation for Rust. 
+# An OAuth 1.0 implementation for Rust. 
