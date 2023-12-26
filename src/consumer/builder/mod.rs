@@ -13,7 +13,12 @@
 //
 // - preset
 
-pub mod preset;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
+
+use toml::Value;
+use url::Url;
 
 use crate::consumer::builder::preset::Preset;
 use crate::consumer::Consumer;
@@ -21,7 +26,8 @@ use crate::error::OagainError::BadUrl;
 use crate::error::{OagainError, Result};
 use crate::nonce_provider::{BasicNonce, NonceProvider};
 use crate::BasicConsumer;
-use url::Url;
+
+pub mod preset;
 
 #[derive(Debug)]
 pub struct Builder {
@@ -34,6 +40,21 @@ pub struct Builder {
 
     consumer_key: Option<String>,
     consumer_secret: Option<String>,
+}
+
+fn read_key_and_secret(path: impl AsRef<Path>) -> Result<(String, String)> {
+    let mut s = String::new();
+    let mut f = File::open(path)?;
+    f.read_to_string(&mut s)?;
+    let table = s.parse::<toml::Table>()?;
+
+    let Some(Value::String(key)) = table.get("token") else {
+        return Err(OagainError::MissingConsumerToken("in secrets file"));
+    };
+    let Some(Value::String(secret)) = table.get("secret") else {
+        return Err(OagainError::MissingConsumerSecret("in secrets file"));
+    };
+    Ok((key.to_string(), secret.to_string()))
 }
 
 impl Default for Builder {
@@ -116,5 +137,12 @@ impl Builder {
     pub fn set_consumer_secret(mut self, val: impl Into<String>) -> Self {
         self.consumer_secret = Some(val.into());
         self
+    }
+
+    pub fn use_secrets_file(mut self, path: impl AsRef<Path>) -> Result<Self> {
+        let (consumer_key, consumer_secret) = read_key_and_secret(path)?;
+        Ok(self
+            .set_consumer_key(consumer_key)
+            .set_consumer_secret(consumer_secret))
     }
 }

@@ -1,21 +1,16 @@
-use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Write;
 
-use toml::Table;
 use url::Url;
 
+use oagain::Result;
 use oagain::{BasicConsumer, ETradePreset};
-use oagain::{OagainError, Result};
 
 fn main() -> Result<()> {
     env_logger::init();
 
-    let (key, secret) = read_key_and_secret()?;
-
     let mut consumer = BasicConsumer::builder()
         .use_preset(ETradePreset)?
-        .set_consumer_key(key)
-        .set_consumer_secret(secret)
+        .use_secrets_file("secrets.toml")?
         .build()?;
 
     consumer.retrieve_request_token()?;
@@ -38,23 +33,4 @@ fn main() -> Result<()> {
     println!("RESPONSE: {}", response_str);
 
     Ok(())
-}
-
-fn read_key_and_secret() -> Result<(String, String)> {
-    let mut s = String::new();
-    let mut f = File::open("secrets.toml")?;
-    f.read_to_string(&mut s)?;
-    let table = s.parse::<Table>()?;
-    let key = table.get("token");
-    if key.is_none() {
-        return Err(OagainError::MissingConsumerToken("in secrets file"));
-    }
-    let secret = table.get("secret");
-    if secret.is_none() {
-        return Err(OagainError::MissingConsumerSecret("in secrets file"));
-    }
-    Ok((
-        key.and_then(|k| k.as_str()).unwrap().to_string(),
-        secret.and_then(|v| v.as_str()).unwrap().to_string(),
-    ))
 }

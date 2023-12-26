@@ -1,13 +1,13 @@
-mod access_token;
-mod request_token;
-
-use crate::consumer::Consumer;
-use crate::nonce_provider::NonceProvider;
-use crate::parameters::ParamPair;
 use url::Url;
 
 pub use access_token::AccessTokenScheme;
 pub use request_token::RequestTokenScheme;
+
+use crate::consumer::Consumer;
+use crate::nonce_provider::NonceProvider;
+
+mod access_token;
+mod request_token;
 
 /*
    - All request headers

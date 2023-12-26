@@ -149,7 +149,7 @@ impl<NP: NonceProvider> Consumer<NP> {
     }
 
     fn canned_request(&mut self, req: &impl RequestScheme) -> Result<Response> {
-        let mut url = req.url(self).clone();
+        let url = req.url(self).clone();
         let auth_header = self.sign_request_from_components(req.method(), &url)?;
         debug!("auth_header: {}", auth_header);
         // TODO: reuse these clients.

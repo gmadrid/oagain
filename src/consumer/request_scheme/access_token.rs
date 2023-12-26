@@ -1,9 +1,9 @@
-use super::RequestScheme;
+use url::Url;
+
 use crate::consumer::Consumer;
 use crate::nonce_provider::NonceProvider;
-use crate::parameters::ParamPair;
-use crate::OagainError;
-use url::Url;
+
+use super::RequestScheme;
 
 pub struct AccessTokenScheme;
 
