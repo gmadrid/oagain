@@ -31,7 +31,7 @@ I would like something like this:
   let consumer = BasicConsumer::builder()
     .use_preset(ETradePreset)
     .use_secrets_file("<path to config file>")?
-    .save_auth_to_file("<path to writable config file>")?
+    .use_save_file("<path to writable config file>")?
     .build()?;
 
   let etrade = ETrade::builder()

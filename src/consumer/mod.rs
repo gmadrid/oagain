@@ -1,7 +1,10 @@
+use std::fs::File;
+use std::io::Write;
 use std::iter::once;
+use std::path::PathBuf;
 
 use itertools::Itertools;
-use log::debug;
+use log::{debug, error};
 use reqwest::blocking::Client;
 use reqwest::blocking::Response;
 use url::Url;
@@ -11,11 +14,11 @@ use request_scheme::RequestScheme;
 use request_scheme::RequestTokenScheme;
 
 use crate::constants::{
-    OAUTH_CALLBACK_OOB_VALUE, OAUTH_CALLBACK_PARAM_NAME, OAUTH_CONSUMER_KEY_PARAM_NAME,
-    OAUTH_NONCE_PARAM_NAME, OAUTH_SIGNATURE_METHOD_HMAC_VALUE, OAUTH_SIGNATURE_METHOD_PARAM_NAME,
-    OAUTH_SIGNATURE_PARAM_NAME, OAUTH_TIMESTAMP_PARAM_NAME, OAUTH_TOKEN_PARAM_NAME,
-    OAUTH_TOKEN_SECRET_PARAM_NAME, OAUTH_VERIFIER_PARAM_NAME, OAUTH_VERSION_PARAM_NAME,
-    OAUTH_VERSION_VALUE,
+    ACCESS_TOKEN_NAME, OAUTH_CALLBACK_OOB_VALUE, OAUTH_CALLBACK_PARAM_NAME,
+    OAUTH_CONSUMER_KEY_PARAM_NAME, OAUTH_NONCE_PARAM_NAME, OAUTH_SIGNATURE_METHOD_HMAC_VALUE,
+    OAUTH_SIGNATURE_METHOD_PARAM_NAME, OAUTH_SIGNATURE_PARAM_NAME, OAUTH_TIMESTAMP_PARAM_NAME,
+    OAUTH_TOKEN_PARAM_NAME, OAUTH_TOKEN_SECRET_PARAM_NAME, OAUTH_VERIFIER_PARAM_NAME,
+    OAUTH_VERSION_PARAM_NAME, OAUTH_VERSION_VALUE, TOKEN_SECRET_NAME,
 };
 use crate::consumer::builder::Builder;
 use crate::error::{OagainError, Result};
@@ -46,12 +49,17 @@ pub struct Consumer<NP: NonceProvider> {
     user_auth_key_param_name: String,
     user_auth_token_param_name: String,
 
+    save_file: Option<PathBuf>,
     state: ConsumerState,
 }
 
 impl<NP: NonceProvider> Consumer<NP> {
     pub fn builder() -> Builder {
         Builder::default()
+    }
+
+    pub fn is_fully_authed(&self) -> bool {
+        matches!(self.state, ConsumerState::FullAuth { .. })
     }
 
     pub fn get(&mut self, url: &Url) -> Result<String> {
@@ -112,6 +120,21 @@ impl<NP: NonceProvider> Consumer<NP> {
         Ok(())
     }
 
+    pub fn write_state_to_save_file(&self) -> Result<()> {
+        if let Some(save_file) = &self.save_file {
+            let contents = format!(
+                "{}=\"{}\"\n{}=\"{}\"",
+                ACCESS_TOKEN_NAME,
+                self.state.token().unwrap_or_default(),
+                TOKEN_SECRET_NAME,
+                self.state.token_secret().unwrap_or_default()
+            );
+            let mut f = File::create(save_file)?;
+            f.write_all(contents.as_bytes())?;
+        }
+        Ok(())
+    }
+
     pub fn retrieve_access_token(&mut self) -> Result<()> {
         debug!("retrieve_access_token: {:?}", self);
         let response = self.canned_request(&AccessTokenScheme)?;
@@ -134,6 +157,10 @@ impl<NP: NonceProvider> Consumer<NP> {
             access_token: access_token.ok_or(OagainError::MissingAccessToken)?,
             token_secret: token_secret.ok_or(OagainError::MissingTokenSecret)?,
         };
+
+        if let Err(err) = self.write_state_to_save_file() {
+            error!("Failed writing to save file: {}", err.to_string())
+        }
 
         Ok(())
     }
