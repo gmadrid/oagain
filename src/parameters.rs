@@ -7,6 +7,7 @@ pub struct ParamPair {
 }
 
 impl ParamPair {
+    #[cfg(test)]
     pub fn single(name: impl Into<String>) -> ParamPair {
         ParamPair {
             name: name.into(),

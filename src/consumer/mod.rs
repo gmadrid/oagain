@@ -10,28 +10,21 @@ use reqwest::blocking::Response;
 use toml::Value;
 use url::Url;
 
-use request_scheme::AccessTokenScheme;
-use request_scheme::RequestScheme;
-use request_scheme::RequestTokenScheme;
+pub use builder::preset::ETradePreset;
+//use request_scheme::AccessTokenScheme;
+//use request_scheme::RequestScheme;
+//use request_scheme::RequestTokenScheme;
+use state::ConsumerState;
 
-use crate::constants::{
-    ACCESS_TOKEN_NAME, OAUTH_CALLBACK_OOB_VALUE, OAUTH_CALLBACK_PARAM_NAME,
-    OAUTH_CONSUMER_KEY_PARAM_NAME, OAUTH_NONCE_PARAM_NAME, OAUTH_SIGNATURE_METHOD_HMAC_VALUE,
-    OAUTH_SIGNATURE_METHOD_PARAM_NAME, OAUTH_SIGNATURE_PARAM_NAME, OAUTH_TIMESTAMP_PARAM_NAME,
-    OAUTH_TOKEN_PARAM_NAME, OAUTH_TOKEN_SECRET_PARAM_NAME, OAUTH_VERIFIER_PARAM_NAME,
-    OAUTH_VERSION_PARAM_NAME, OAUTH_VERSION_VALUE, TOKEN_SECRET_NAME,
-};
-use crate::consumer::builder::Builder;
+use crate::constants::*;
+pub use crate::consumer::builder::Builder;
 use crate::error::{OagainError, Result};
 use crate::nonce_provider::{BasicNonce, NonceProvider, SystemEpochProvider};
 use crate::parameters::{decode_params_string, ParamPair};
 use crate::signing::{concat_request_elements, make_signing_key, sign_string_hmac};
 use crate::util::BoolToOption;
-pub use builder::preset::ETradePreset;
-use state::ConsumerState;
 
 mod builder;
-pub(crate) mod request_scheme;
 mod state;
 
 /// A basic consumer that uses the standard time-based nonce provider.
@@ -77,7 +70,7 @@ impl<NP: NonceProvider> Consumer<NP> {
     }
 
     pub fn retrieve_request_token(&mut self) -> Result<()> {
-        let response = self.canned_request(&RequestTokenScheme)?;
+        let response = self.canned_request("GET", &self.request_token_url.clone())?;
         let response_str = String::from_utf8(Vec::from(response.bytes()?))?;
 
         // TODO: check the incoming state.
@@ -121,7 +114,7 @@ impl<NP: NonceProvider> Consumer<NP> {
         Ok(())
     }
 
-    pub fn write_state_to_save_file(&self) -> Result<()> {
+    fn write_state_to_save_file(&self) -> Result<()> {
         if let Some(save_file) = &self.save_file {
             let mut table = toml::Table::new();
             table.insert(
@@ -141,7 +134,7 @@ impl<NP: NonceProvider> Consumer<NP> {
 
     pub fn retrieve_access_token(&mut self) -> Result<()> {
         debug!("retrieve_access_token: {:?}", self);
-        let response = self.canned_request(&AccessTokenScheme)?;
+        let response = self.canned_request("GET", &self.access_token_url.clone())?;
         debug!("access raw response: {:?}", response);
         let response_str: String = String::from_utf8(Vec::from(response.bytes()?))?;
         debug!("access response: {}", response_str);
@@ -179,15 +172,15 @@ impl<NP: NonceProvider> Consumer<NP> {
         Ok(base_url)
     }
 
-    fn canned_request(&mut self, req: &impl RequestScheme) -> Result<Response> {
-        let url = req.url(self).clone();
-        let auth_header = self.sign_request_from_components(req.method(), &url)?;
+    fn canned_request(&mut self, method: impl AsRef<str>, url: &Url) -> Result<Response> {
+        //let url = url(self).clone();
+        let auth_header = self.sign_request_from_components(method, url)?;
         debug!("auth_header: {}", auth_header);
         // TODO: reuse these clients.
         let client = Client::builder().build()?;
         // TODO: make this a fold()
         let response = client
-            .get(url)
+            .get(url.clone())
             .header("Authorization", auth_header)
             .send()?;
 
@@ -269,11 +262,15 @@ impl<NP: NonceProvider> Consumer<NP> {
 
     //----------------------------------------------------------------------
 
-    pub fn nonce(&mut self) -> Result<(u32, String)> {
+    pub(crate) fn nonce(&mut self) -> Result<(u32, String)> {
         self.nonce_provider.nonce()
     }
 
-    pub fn oauth_header(&self, param_pairs: &[ParamPair], signature: impl AsRef<str>) -> String {
+    pub(crate) fn oauth_header(
+        &self,
+        param_pairs: &[ParamPair],
+        signature: impl AsRef<str>,
+    ) -> String {
         let signature_pair = ParamPair::pair(OAUTH_SIGNATURE_PARAM_NAME, signature.as_ref());
         format!(
             "OAuth {}",

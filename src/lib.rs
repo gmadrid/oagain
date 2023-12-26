@@ -10,6 +10,6 @@ mod util;
 #[cfg(test)]
 mod test_constants;
 
-pub use consumer::BasicConsumer;
 pub use consumer::ETradePreset;
+pub use consumer::{BasicConsumer, Builder, Consumer};
 pub use error::{OagainError, Result};
