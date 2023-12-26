@@ -18,3 +18,4 @@ Cargo.lock
 
 /target
 secrets.toml
+save.toml
