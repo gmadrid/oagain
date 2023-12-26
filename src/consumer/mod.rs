@@ -7,6 +7,7 @@ use itertools::Itertools;
 use log::{debug, error};
 use reqwest::blocking::Client;
 use reqwest::blocking::Response;
+use toml::Value;
 use url::Url;
 
 use request_scheme::AccessTokenScheme;
@@ -122,15 +123,18 @@ impl<NP: NonceProvider> Consumer<NP> {
 
     pub fn write_state_to_save_file(&self) -> Result<()> {
         if let Some(save_file) = &self.save_file {
-            let contents = format!(
-                "{}=\"{}\"\n{}=\"{}\"",
-                ACCESS_TOKEN_NAME,
-                self.state.token().unwrap_or_default(),
-                TOKEN_SECRET_NAME,
-                self.state.token_secret().unwrap_or_default()
+            let mut table = toml::Table::new();
+            table.insert(
+                ACCESS_TOKEN_NAME.to_string(),
+                Value::String(self.state.token().unwrap_or_default().to_string()),
             );
+            table.insert(
+                TOKEN_SECRET_NAME.to_string(),
+                Value::String(self.state.token_secret().unwrap_or_default().to_string()),
+            );
+
             let mut f = File::create(save_file)?;
-            f.write_all(contents.as_bytes())?;
+            f.write_all(table.to_string().as_bytes())?;
         }
         Ok(())
     }
