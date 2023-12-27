@@ -37,9 +37,6 @@ mod test {
             .unwrap()
             .as_secs() as u32;
 
-        dbg!(time);
-        dbg!(millis);
-
         // There is no really good way to test_cases this. We just ensure that the time returned by
         // provider is within 10ms of the current time expressed as ms from the unix epoch.
         assert!(millis.abs_diff(time) < 10);

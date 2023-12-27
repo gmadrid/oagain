@@ -44,26 +44,3 @@ I would like something like this:
   
   // and so on....
 ```
-
-## Loading config
-
-If no "secrets" file is passed in, build() will fail. (Maybe later, we can load them from env vars.)
-The reason is that we cannot proceed with consumer token/secret.
-
-The fields in the file should be named "token" and "secret" which are set to the consumer token and 
-consumer secret respectively.
-
-If the secrets file is provided, failure to read it will cause build() to fail.
-
-## Saving access token/secret.
-
-If no save file is provided, then the access token/secret will be requested on every invocation.
-Since this will quickly get tiresome for the user, we can specify a path. 
-- if not present, it will be created (with parent dirs) and marked as 600. 
-- if present, check the read permissions, and if it's not 600, warn!.
-- if present, read the `access_token` and `token_secret` from the file on build() and if successful, 
-  set the `ConsumerState` to `FullAuth`.
-- when doing the full auth procedure, as soon as the tokens are received from the server, write them
-  to the save file. We overwrite the file every time, and nothing that existed before will be saved.
-- we will _not_ save any of the intermediate auth steps.
-

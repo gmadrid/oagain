@@ -11,9 +11,6 @@ use toml::Value;
 use url::Url;
 
 pub use builder::preset::ETradePreset;
-//use request_scheme::AccessTokenScheme;
-//use request_scheme::RequestScheme;
-//use request_scheme::RequestTokenScheme;
 use state::ConsumerState;
 
 use crate::constants::*;
@@ -32,8 +29,8 @@ pub type BasicConsumer = Consumer<BasicNonce<SystemEpochProvider>>;
 
 #[derive(Debug)]
 pub struct Consumer<NP: NonceProvider> {
-    pub(crate) consumer_key: String,
-    pub(crate) consumer_secret: String,
+    consumer_key: String,
+    consumer_secret: String,
     nonce_provider: NP,
 
     request_token_url: Url,
@@ -56,14 +53,41 @@ impl<NP: NonceProvider> Consumer<NP> {
         matches!(self.state, ConsumerState::FullAuth { .. })
     }
 
+    fn ensure_auth(&mut self) -> Result<()> {
+        if !self.is_fully_authed() {
+            self.retrieve_request_token()?;
+
+            let url = self.make_user_auth_url()?;
+            println!(
+                "Go to the following URL and follow the instructions:\n\n    {}\n\n",
+                url
+            );
+            print!("Input the verification code received from the server: ");
+            std::io::stdout().flush()?;
+            let mut code: String = Default::default();
+            std::io::stdin().read_line(&mut code)?;
+            self.set_verification_code(code.trim())?;
+
+            self.retrieve_access_token()?;
+        }
+        Ok(())
+    }
+
     pub fn get(&mut self, url: &Url) -> Result<String> {
+        self.ensure_auth()?;
+
         let auth_header = self.sign_request_from_components("GET", url)?;
+        debug!("get: auth_header: {}", auth_header);
         let client = Client::builder().build()?;
         let response = client
             .get(url.clone())
             .header("Authorization", auth_header)
             .send()?;
+
+        // TODO: check for non-200 result code.
+        debug!("get: response: {:?}", response);
         let response_str = String::from_utf8(Vec::from(response.bytes()?))?;
+
         // TODO: add param processing.
 
         Ok(response_str)
@@ -196,8 +220,15 @@ impl<NP: NonceProvider> Consumer<NP> {
         debug!("timestamp, nonce: {}, {}", timestamp, nonce);
         let standard_params = self.oauth_param_list(timestamp, nonce);
         debug!("standard_params: {:?}", standard_params);
-        let string_to_sign =
-            concat_request_elements(method.as_ref(), url, standard_params.iter().cloned());
+
+        let other_params = url
+            .query_pairs()
+            .map(|(name, value)| ParamPair::pair(name, value))
+            .collect::<Vec<_>>();
+
+        let param_iter = standard_params.iter().chain(other_params.iter());
+
+        let string_to_sign = concat_request_elements(method.as_ref(), url, param_iter.cloned());
         debug!("string_to_sign: {}", string_to_sign);
 
         let signing_key = make_signing_key(
