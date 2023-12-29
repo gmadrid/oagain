@@ -13,6 +13,7 @@
 //
 // - preset
 
+use chrono::{DateTime, Duration, Utc};
 use log::{info, warn};
 use std::fs::{File, Permissions};
 use std::io::Read;
@@ -22,7 +23,7 @@ use std::path::{Path, PathBuf};
 use toml::Value;
 use url::Url;
 
-use crate::constants::{ACCESS_TOKEN_NAME, TOKEN_SECRET_NAME};
+use crate::constants::{ACCESS_TOKEN_NAME, TOKEN_SAVE_TIME, TOKEN_SECRET_NAME};
 use crate::consumer::builder::preset::Preset;
 use crate::consumer::state::ConsumerState;
 use crate::consumer::state::ConsumerState::FullAuth;
@@ -89,6 +90,15 @@ fn read_access_key_and_secret(path: impl AsRef<Path>) -> Result<(String, String)
     let Some(Value::String(secret)) = table.get(TOKEN_SECRET_NAME) else {
         return Err(OagainError::MissingTokenSecret);
     };
+    let Some(Value::Datetime(save_time)) = table.get(TOKEN_SAVE_TIME) else {
+        return Err(OagainError::MissingTokenSaveTime);
+    };
+    let chrono_date_time = DateTime::parse_from_rfc3339(&save_time.to_string())?;
+    let age = Utc::now().signed_duration_since(&chrono_date_time);
+    if age > Duration::hours(2) {
+        return Err(OagainError::OldToken);
+    }
+
     Ok((key.to_string(), secret.to_string()))
 }
 

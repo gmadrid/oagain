@@ -13,4 +13,5 @@ pub const OAUTH_NONCE_PARAM_NAME: &str = "oauth_nonce";
 pub const OAUTH_VERIFIER_PARAM_NAME: &str = "oauth_verifier";
 pub const OAUTH_VERSION_PARAM_NAME: &str = "oauth_version";
 pub const OAUTH_VERSION_VALUE: &str = "1.0";
+pub const TOKEN_SAVE_TIME: &str = "token_save_time";
 pub const TOKEN_SECRET_NAME: &str = "token_secret";

@@ -7,6 +7,9 @@ pub enum OagainError {
     #[error("A bad URL was passed to Consumer Builder")]
     BadUrl,
 
+    #[error("A parse error occurred in a date string.")]
+    ChronoError(#[from] chrono::ParseError),
+
     #[error("A param starting with 'oauth_' is disallowed, {0}")]
     DisallowedOauthParam(String),
 
@@ -43,8 +46,17 @@ pub enum OagainError {
     #[error("A required scheme is missing from a URL, {0}.")]
     MissingScheme(String),
 
+    #[error("The token save time is not stored in the save file.")]
+    MissingTokenSaveTime,
+
     #[error("A required token secret was not found")]
     MissingTokenSecret,
+
+    // TODO: Ideally, we should try to renew it if it's eligible.
+    //       (See the [docs](https://apisb.etrade.com/docs/api/authorization/renew_access_token.html).
+    // TODO: Also, we should save the _last use_ time, not the save time.
+    #[error("The token was too old to use.")]
+    OldToken,
 
     #[error("A reqwest error")]
     ReqwestError(#[from] reqwest::Error),

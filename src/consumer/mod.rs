@@ -3,6 +3,7 @@ use std::io::Write;
 use std::iter::once;
 use std::path::PathBuf;
 
+use chrono::{Datelike, Timelike, Utc};
 use itertools::Itertools;
 use log::{debug, error};
 use reqwest::blocking::Client;
@@ -57,11 +58,14 @@ impl<NP: NonceProvider> Consumer<NP> {
         if !self.is_fully_authed() {
             self.retrieve_request_token()?;
 
+            // TODO: pass in an argument to the consumer on whether to open the browser.
+            // TODO: make the messages match what's happening with the browser opening or not.
             let url = self.make_user_auth_url()?;
             println!(
                 "Go to the following URL and follow the instructions:\n\n    {}\n\n",
                 url
             );
+            open::that(url.to_string())?;
             print!("Input the verification code received from the server: ");
             std::io::stdout().flush()?;
             let mut code: String = Default::default();
@@ -91,6 +95,16 @@ impl<NP: NonceProvider> Consumer<NP> {
         // TODO: add param processing.
 
         Ok(response_str)
+    }
+
+    pub fn get_fake(&mut self, url: &Url) -> Result<String> {
+        self.ensure_auth()?;
+
+        let auth_header = self.sign_request_from_components("GET", url)?;
+        println!("Method: '{}'", "GET");
+        println!("Url:    '{}'", url.to_string());
+        println!("Header: '{}'", auth_header);
+        Ok("FAKE".to_string())
     }
 
     pub fn retrieve_request_token(&mut self) -> Result<()> {
@@ -138,6 +152,24 @@ impl<NP: NonceProvider> Consumer<NP> {
         Ok(())
     }
 
+    fn toml_now() -> toml::value::Datetime {
+        let utc = Utc::now();
+        toml::value::Datetime {
+            date: Some(toml::value::Date {
+                year: utc.year() as u16,
+                month: utc.month() as u8,
+                day: utc.day() as u8,
+            }),
+            time: Some(toml::value::Time {
+                hour: utc.hour() as u8,
+                minute: utc.minute() as u8,
+                second: utc.second() as u8,
+                nanosecond: 0,
+            }),
+            offset: Some(toml::value::Offset::Z),
+        }
+    }
+
     fn write_state_to_save_file(&self) -> Result<()> {
         if let Some(save_file) = &self.save_file {
             let mut table = toml::Table::new();
@@ -148,6 +180,10 @@ impl<NP: NonceProvider> Consumer<NP> {
             table.insert(
                 TOKEN_SECRET_NAME.to_string(),
                 Value::String(self.state.token_secret().unwrap_or_default().to_string()),
+            );
+            table.insert(
+                TOKEN_SAVE_TIME.to_string(),
+                Value::Datetime(Self::toml_now()),
             );
 
             let mut f = File::create(save_file)?;
